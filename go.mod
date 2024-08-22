@@ -1,4 +1,4 @@
-module github.com/ksysoev/grpc-hub
+module github.com/ksysoev/oneway
 
 go 1.23.0
 
