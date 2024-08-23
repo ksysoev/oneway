@@ -1,6 +1,6 @@
  syntax = "proto3";
- package exchane;
- option go_package = "github.com/ksysoev/oneway/api/exchange";
+ package api;
+ option go_package = "github.com/ksysoev/oneway/api";
 
  
 
