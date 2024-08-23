@@ -1,0 +1,29 @@
+ syntax = "proto3";
+ package exchane;
+ option go_package = "github.com/ksysoev/oneway/api/exchange";
+
+ 
+
+ service ExchangeService {
+   rpc RegisterService(RegisterRequest) returns (stream ServerCommands) {}
+ }
+
+message RegisterRequest {
+  string name_space = 1;
+  repeated string service_name = 2;
+}
+
+
+
+message ServerCommands {
+  oneof payload {
+    ConnectCommand connect = 1;
+  }
+}
+
+
+message ConnectCommand {
+  string name_space = 1;
+  string service_name = 2;
+}
+
