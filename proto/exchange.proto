@@ -5,25 +5,18 @@
  
 
  service ExchangeService {
-   rpc RegisterService(RegisterRequest) returns (stream ServerCommands) {}
+   rpc RegisterService(RegisterRequest) returns (stream ConnectCommand) {};
  }
 
 message RegisterRequest {
   string name_space = 1;
-  repeated string service_name = 2;
-}
-
-
-
-message ServerCommands {
-  oneof payload {
-    ConnectCommand connect = 1;
-  }
+  string service_name = 2;
 }
 
 
 message ConnectCommand {
   string name_space = 1;
   string service_name = 2;
+  uint64 id = 3;
 }
 
