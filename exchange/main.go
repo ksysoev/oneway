@@ -14,8 +14,9 @@ import (
 )
 
 type ExchangeService struct {
-	lock sync.Mutex
-	srvs map[string]*Service
+	lock    sync.Mutex
+	srvs    map[string]*Service
+	pooller *ConnectionPooler
 	api.UnimplementedExchangeServiceServer
 }
 
@@ -32,6 +33,8 @@ func (s *ExchangeService) RegisterService(req *api.RegisterRequest, stream grpc.
 			cmd.RespChan <- ConnectCommandResponse{Err: fmt.Errorf("service not found")}
 			continue
 		}
+
+		s.pooller.WaitForConn(&cmd)
 
 		err := stream.Send(&api.ConnectCommand{
 			NameSpace:   cmd.NameSpace,
@@ -63,8 +66,16 @@ func main() {
 }
 
 func startAPI(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	pooler := NewConnectionPooler(":9091")
+
 	grpcServer := grpc.NewServer()
-	api.RegisterExchangeServiceServer(grpcServer, &ExchangeService{})
+	api.RegisterExchangeServiceServer(grpcServer, &ExchangeService{
+		srvs:    make(map[string]*Service),
+		pooller: pooler,
+	})
 
 	lis, err := net.Listen("tcp", ":9090")
 	if err != nil {
@@ -74,6 +85,14 @@ func startAPI(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		grpcServer.GracefulStop()
+	}()
+
+	go func() {
+		defer cancel()
+		err := pooler.Run(ctx)
+		if err != nil {
+			slog.Error("Failed to run connection pooler", slog.Any("error", err))
+		}
 	}()
 
 	slog.Info("Exchange service started", slog.Int64("port", 9090))
@@ -88,24 +107,4 @@ func startAPI(ctx context.Context) error {
 type connection struct {
 	conn net.Conn
 	id   uint64
-}
-
-func startConnectionListener(ctx context.Context) error {
-	lis, err := net.Listen("tcp", ":9091")
-	if err != nil {
-		return fmt.Errorf("failed to listen: %w", err)
-	}
-
-	go func() {
-		<-ctx.Done()
-		lis.Close()
-	}()
-
-	for {
-		conn, err := lis.Accept()
-		if err != nil {
-			return fmt.Errorf("failed to accept connection: %w", err)
-		}
-
-	}
 }
