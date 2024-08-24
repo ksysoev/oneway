@@ -8,5 +8,5 @@ require (
 	golang.org/x/build v0.0.0-20240821162849-617f3edbcfba // indirect
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/sys v0.23.0 // indirect
-	tailscale.com v1.72.0 // indirect
+	tailscale.com v1.72.1 // indirect
 )

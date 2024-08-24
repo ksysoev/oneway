@@ -13,3 +13,5 @@ golang.org/x/sys v0.23.0 h1:YfKFowiIMvtgl1UERQoTPPToxltDeZfbj4H7dVUCwmM=
 golang.org/x/sys v0.23.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 tailscale.com v1.72.0 h1:emsPxupFM72zJLt2wvSzpa1vymqPYbL0WVVO+170/s0=
 tailscale.com v1.72.0/go.mod h1:v7OHtg0KLAnhOVf81Z8WrjNefj238QbFhgkWJQoKxbs=
+tailscale.com v1.72.1 h1:hk82jek36ph2S3Tfsh57NVWKEm/pZ9nfUonvlowpfaA=
+tailscale.com v1.72.1/go.mod h1:v7OHtg0KLAnhOVf81Z8WrjNefj238QbFhgkWJQoKxbs=

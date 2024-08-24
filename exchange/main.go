@@ -2,15 +2,18 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/ksysoev/oneway/api"
 	"google.golang.org/grpc"
+	"tailscale.com/net/socks5"
 )
 
 type ExchangeService struct {
@@ -50,6 +53,24 @@ func (s *ExchangeService) RegisterService(req *api.RegisterRequest, stream grpc.
 	return nil
 }
 
+func (s *ExchangeService) GetService(ctx context.Context, address string) (*Service, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	address, _, err := net.SplitHostPort(address)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to split address: %w", err)
+	}
+
+	srv, ok := s.srvs[address]
+	if !ok {
+		return nil, fmt.Errorf("service not found")
+	}
+
+	return srv, nil
+}
+
 // Exchange will be between the client and the server and will be routing and multiplexing client connections to the correct service
 func main() {
 	ctx := context.Background()
@@ -71,11 +92,24 @@ func startAPI(ctx context.Context) error {
 
 	pooler := NewConnectionPooler(":9091")
 
-	grpcServer := grpc.NewServer()
-	api.RegisterExchangeServiceServer(grpcServer, &ExchangeService{
+	exchange := &ExchangeService{
 		srvs:    make(map[string]*Service),
 		pooller: pooler,
-	})
+	}
+
+	grpcServer := grpc.NewServer()
+	api.RegisterExchangeServiceServer(grpcServer, exchange)
+
+	socks5Server := socks5.Server{
+		Dialer: func(ctx context.Context, network, address string) (net.Conn, error) {
+			srv, err := exchange.GetService(ctx, address)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get service: %w", err)
+			}
+
+			return srv.RequestConn(ctx, address)
+		},
+	}
 
 	lis, err := net.Listen("tcp", ":9090")
 	if err != nil {
@@ -92,6 +126,32 @@ func startAPI(ctx context.Context) error {
 		err := pooler.Run(ctx)
 		if err != nil {
 			slog.Error("Failed to run connection pooler", slog.Any("error", err))
+		}
+	}()
+
+	go func() {
+		defer cancel()
+
+		lis, err := net.Listen("tcp", ":1080")
+		if err != nil {
+			slog.Error("Failed to listen", slog.Any("error", err))
+			return
+		}
+
+		slog.Info("SOCKS5 server started", slog.Int64("port", 1080))
+
+		go func() {
+			<-ctx.Done()
+			lis.Close()
+		}()
+
+		err = socks5Server.Serve(lis)
+		if errors.Is(err, net.ErrClosed) || errors.Is(err, syscall.EPIPE) {
+			return
+		}
+
+		if err != nil {
+			slog.Error("Failed to serve", slog.Any("error", err))
 		}
 	}()
 

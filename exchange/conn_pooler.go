@@ -40,6 +40,8 @@ func (p *ConnectionPooler) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
 
+	slog.Info("Connection pooler started", slog.String("address", p.listen))
+
 	go func() {
 		<-ctx.Done()
 		ln.Close()
