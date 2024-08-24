@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 
 	"github.com/ksysoev/oneway/example/api"
+	"golang.org/x/net/proxy"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -16,7 +18,20 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 	defer cancel()
 
-	conn, err := grpc.NewClient("localhost:9095", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	dialer, err := proxy.SOCKS5("tcp", "localhost:1080", nil, nil)
+	ctxDialer, ok := dialer.(proxy.ContextDialer)
+	if !ok {
+		panic("dialer does not implement proxy.ContextDialer")
+	}
+
+	conn, err := grpc.NewClient("localhost:9095",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(
+			func(ctx context.Context, addr string) (net.Conn, error) {
+				return ctxDialer.DialContext(ctx, "tcp", addr)
+			},
+		))
+
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
 		return
