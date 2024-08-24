@@ -63,10 +63,8 @@ func main() {
 }
 
 func startAPI(ctx context.Context) error {
-	service := api.NewExchangeServiceService(&ExchangeService{})
-
 	grpcServer := grpc.NewServer()
-	api.RegisterExchangeServiceService(grpcServer, service)
+	api.RegisterExchangeServiceServer(grpcServer, &ExchangeService{})
 
 	lis, err := net.Listen("tcp", ":9090")
 	if err != nil {
