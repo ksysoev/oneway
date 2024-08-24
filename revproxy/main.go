@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/binary"
+	"io"
 	"log/slog"
 	"net"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/ksysoev/oneway/api"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // RevProxy will be executed on server side  to publish service to the exchange service
@@ -25,7 +27,11 @@ func main() {
 
 	serviceRegistry["service1"] = "localhost:8080"
 
-	conn, err := grpc.NewClient("localhost:9090")
+	conn, err := grpc.NewClient("localhost:9090", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		slog.Error("failed to dial exchange", slog.Any("error", err))
+		return
+	}
 
 	exchangeService := api.NewExchangeServiceClient(conn)
 
@@ -35,45 +41,70 @@ func main() {
 	})
 
 	if err != nil {
-		panic(err)
+		slog.Error("failed to register service", slog.Any("error", err))
+		return
 	}
+
+	slog.Info("service registered")
 
 	for {
 		cmd, err := sub.Recv()
 		if err != nil {
-			panic(err)
+			slog.Error("failed to receive command", slog.Any("error", err))
+			break
 		}
 
 		if cmd.NameSpace != NameSpace {
-			panic("invalid namespace")
+			slog.Error("invalid namespace")
+			continue
 		}
 
 		address, ok := serviceRegistry[cmd.ServiceName]
 		if !ok {
-			panic("service not found")
+			slog.Error("service not found")
+			continue
 		}
-		go handleRequest(cmd, address)
+		go handleRequest(ctx, cmd, address)
 	}
 
 }
 
-func handleRequest(cmd *api.ConnectCommand, dest string) {
+func handleRequest(ctx context.Context, cmd *api.ConnectCommand, dest string) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	connDest, err := net.Dial("tcp", dest)
 
 	if err != nil {
 		slog.Error("failed to dial", slog.Any("error", err))
 	}
 
+	defer connDest.Close()
+
 	revConn, err := net.Dial("tcp", "localhost:9091")
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
 	}
+
+	defer revConn.Close()
 
 	err = handleExchangeProto(cmd.Id, revConn)
 	if err != nil {
 		slog.Error("failed to handle exchange proto", slog.Any("error", err))
 	}
 
+	// TODO: in futre we can use splice or sockmap to avoid copying data in user space
+	go func() {
+		defer cancel()
+		_, _ = io.Copy(connDest, revConn)
+	}()
+
+	go func() {
+		defer cancel()
+		_, _ = io.Copy(revConn, connDest)
+	}()
+
+	<-ctx.Done()
 }
 
 func handleExchangeProto(id uint64, conn net.Conn) error {
