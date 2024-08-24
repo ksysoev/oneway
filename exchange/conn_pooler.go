@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"sync"
+	"syscall"
 )
 
 type ConnectionPooler struct {
@@ -46,6 +48,10 @@ func (p *ConnectionPooler) Run(ctx context.Context) error {
 	wg := sync.WaitGroup{}
 	for ctx.Err() == nil {
 		conn, err := ln.Accept()
+		if errors.Is(err, net.ErrClosed) || errors.Is(err, syscall.EPIPE) {
+			break
+		}
+
 		if err != nil {
 			return fmt.Errorf("failed to accept connection: %w", err)
 		}
