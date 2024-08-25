@@ -25,7 +25,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 	defer cancel()
 
-	serviceRegistry["service1"] = "localhost:8080"
+	serviceRegistry["echoserver"] = "localhost:9095"
 
 	conn, err := grpc.NewClient("localhost:9090", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -37,7 +37,7 @@ func main() {
 
 	sub, err := exchangeService.RegisterService(ctx, &api.RegisterRequest{
 		NameSpace:   NameSpace,
-		ServiceName: "service1",
+		ServiceName: "echoserver",
 	})
 
 	if err != nil {

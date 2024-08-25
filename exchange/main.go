@@ -31,6 +31,8 @@ func (s *ExchangeService) RegisterService(req *api.RegisterRequest, stream grpc.
 	s.srvs[req.ServiceName] = srv
 	s.lock.Unlock()
 
+	slog.Info("Service registered", slog.String("namespace", req.NameSpace), slog.String("service", req.ServiceName))
+
 	for {
 		select {
 		case <-stream.Context().Done():
@@ -39,7 +41,9 @@ func (s *ExchangeService) RegisterService(req *api.RegisterRequest, stream grpc.
 			if !ok {
 				return nil
 			}
-			if cmd.NameSpace != req.NameSpace || cmd.Name != req.ServiceName {
+			if cmd.Name != req.ServiceName {
+				slog.Error("invalid service name", slog.String("name", cmd.Name), slog.String("expected", req.ServiceName))
+
 				cmd.RespChan <- ConnectCommandResponse{Err: fmt.Errorf("service not found")}
 				continue
 			}
@@ -63,14 +67,12 @@ func (s *ExchangeService) GetService(ctx context.Context, address string) (*Serv
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	address, _, err := net.SplitHostPort(address)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to split address: %w", err)
-	}
-
 	srv, ok := s.srvs[address]
 	if !ok {
+		for k, v := range s.srvs {
+			slog.Info("Service", slog.String("key", k), slog.Any("value", v))
+		}
+
 		return nil, fmt.Errorf("service not found")
 	}
 
@@ -108,12 +110,30 @@ func startAPI(ctx context.Context) error {
 
 	socks5Server := socks5.Server{
 		Dialer: func(ctx context.Context, network, address string) (net.Conn, error) {
+			slog.Info("Dialing", slog.String("address", address))
+
+			address, _, err := net.SplitHostPort(address)
+
+			slog.Info("GetService", slog.String("address", address))
+
+			if err != nil {
+				return nil, fmt.Errorf("failed to split address: %w", err)
+			}
+
 			srv, err := exchange.GetService(ctx, address)
 			if err != nil {
+				slog.Error("Failed to get service", slog.Any("error", err))
 				return nil, fmt.Errorf("failed to get service: %w", err)
 			}
 
-			return srv.RequestConn(ctx, address)
+			conn, err := srv.RequestConn(ctx, address)
+			if err != nil {
+				slog.Error("Failed to request connection", slog.Any("error", err))
+				return nil, fmt.Errorf("failed to request connection: %w", err)
+			}
+
+			slog.Info("Connection established", slog.String("address", address))
+			return conn, nil
 		},
 	}
 

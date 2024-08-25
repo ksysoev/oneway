@@ -24,13 +24,23 @@ func main() {
 		panic("dialer does not implement proxy.ContextDialer")
 	}
 
-	conn, err := grpc.NewClient("echoservice:0",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	conn, err := grpc.NewClient("passthrough://",
 		grpc.WithContextDialer(
 			func(ctx context.Context, addr string) (net.Conn, error) {
-				return ctxDialer.DialContext(ctx, "tcp", addr)
+				slog.Info("dialing", slog.String("address", addr))
+
+				conn, err := ctxDialer.DialContext(ctx, "tcp", "echoserver:9095")
+				if err != nil {
+					slog.Error("failed to dial", slog.Any("error", err))
+					return nil, err
+				}
+
+				slog.Info("connection established", slog.Any("address", addr))
+				return conn, nil
 			},
-		))
+		),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
