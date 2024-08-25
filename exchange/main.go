@@ -31,26 +31,32 @@ func (s *ExchangeService) RegisterService(req *api.RegisterRequest, stream grpc.
 	s.srvs[req.ServiceName] = srv
 	s.lock.Unlock()
 
-	for cmd := range commandChan {
-		if cmd.NameSpace != req.NameSpace || cmd.Name != req.ServiceName {
-			cmd.RespChan <- ConnectCommandResponse{Err: fmt.Errorf("service not found")}
-			continue
-		}
+	for {
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case cmd, ok := <-commandChan:
+			if !ok {
+				return nil
+			}
+			if cmd.NameSpace != req.NameSpace || cmd.Name != req.ServiceName {
+				cmd.RespChan <- ConnectCommandResponse{Err: fmt.Errorf("service not found")}
+				continue
+			}
 
-		s.pooller.WaitForConn(&cmd)
+			s.pooller.WaitForConn(&cmd)
 
-		err := stream.Send(&api.ConnectCommand{
-			NameSpace:   cmd.NameSpace,
-			ServiceName: cmd.Name,
-			Id:          cmd.ID,
-		})
+			err := stream.Send(&api.ConnectCommand{
+				NameSpace:   cmd.NameSpace,
+				ServiceName: cmd.Name,
+				Id:          cmd.ID,
+			})
 
-		if err != nil {
-			return fmt.Errorf("failed to send command: %w", err)
+			if err != nil {
+				return fmt.Errorf("failed to send command: %w", err)
+			}
 		}
 	}
-
-	return nil
 }
 
 func (s *ExchangeService) GetService(ctx context.Context, address string) (*Service, error) {

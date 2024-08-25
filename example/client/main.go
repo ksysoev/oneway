@@ -24,7 +24,7 @@ func main() {
 		panic("dialer does not implement proxy.ContextDialer")
 	}
 
-	conn, err := grpc.NewClient("localhost:9095",
+	conn, err := grpc.NewClient("echoservice:0",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(
 			func(ctx context.Context, addr string) (net.Conn, error) {
