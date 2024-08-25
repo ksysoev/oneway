@@ -28,13 +28,13 @@ type ExchangeService struct {
 
 func (s *ExchangeService) RegisterService(req *api.RegisterRequest, stream grpc.ServerStreamingServer[api.ConnectCommand]) error {
 	commandChan := make(chan ConnectCommand)
-	srv := NewService(stream.Context(), req.NameSpace, req.ServiceName, commandChan)
-
 	s.lock.Lock()
-	s.srvs[req.ServiceName] = srv
+	for _, name := range req.ServiceName {
+		srv := NewService(stream.Context(), req.NameSpace, name, commandChan)
+		slog.Info("Registering service", slog.String("namespace", req.NameSpace), slog.String("service", name))
+		s.srvs[name] = srv
+	}
 	s.lock.Unlock()
-
-	slog.Info("Service registered", slog.String("namespace", req.NameSpace), slog.String("service", req.ServiceName))
 
 	for {
 		select {
@@ -46,8 +46,8 @@ func (s *ExchangeService) RegisterService(req *api.RegisterRequest, stream grpc.
 			if !ok {
 				return nil
 			}
-			if cmd.Name != req.ServiceName {
-				slog.Error("invalid service name", slog.String("name", cmd.Name), slog.String("expected", req.ServiceName))
+			if _, ok := s.srvs[cmd.Name]; !ok {
+				slog.Error("invalid service name", slog.String("name", cmd.Name))
 
 				cmd.RespChan <- ConnectCommandResponse{Err: fmt.Errorf("service not found")}
 				continue

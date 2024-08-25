@@ -22,8 +22,10 @@ services:
     environment:
       - EXCHANGE_MANAGE_API=exchange:9090
       - EXCHANGE_CONNECTION_API=exchange:9091
-      - SERVICE_NAME=echoserver
-      - SERVICE_ADDRESS=echoserver:9090
+      - SERVICE_NAME1=echoserver
+      - SERVICE_ADDRESS1=echoserver:9090
+      - SERVICE_NAME2=restapi
+      - SERVICE_ADDRESS2=httpserver:8080
       - NAMESPACE=example
     command: >
       go run /app/revproxy/main.go
@@ -38,5 +40,16 @@ services:
       - GRPC_LISTEN=:9090
     command: >
       go run /app/example/echoserver/main.go
+    depends_on:
+      - revproxy
+  httpserver:
+    image: golang:1.23
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - HTTP_LISTEN=:8080
+    command: >
+      go run /app/example/restapi/main.go
     depends_on:
       - revproxy

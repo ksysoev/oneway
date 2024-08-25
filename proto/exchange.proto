@@ -10,7 +10,7 @@
 
 message RegisterRequest {
   string name_space = 1;
-  string service_name = 2;
+  repeated string service_name = 2;
 }
 
 

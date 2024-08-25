@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/ksysoev/oneway/api"
 	"google.golang.org/grpc"
@@ -23,14 +24,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 	defer cancel()
 
-	serviceName := os.Getenv("SERVICE_NAME")
-	serviceAddress := os.Getenv("SERVICE_ADDRESS")
-	if serviceName == "" || serviceAddress == "" {
-		slog.Error("service name or address not provided")
+	parseServices()
+	if len(serviceRegistry) == 0 {
+		slog.Error("no services provided")
 		return
 	}
-
-	serviceRegistry[serviceName] = serviceAddress
 
 	exchangeManageAPI := os.Getenv("EXCHANGE_MANAGE_API")
 	exchangeConnectionAPI := os.Getenv("EXCHANGE_CONNECTION_API")
@@ -55,9 +53,14 @@ func main() {
 
 	exchangeService := api.NewExchangeServiceClient(conn)
 
+	serviceNames := make([]string, 0, len(serviceRegistry))
+	for name := range serviceRegistry {
+		serviceNames = append(serviceNames, name)
+	}
+
 	sub, err := exchangeService.RegisterService(ctx, &api.RegisterRequest{
 		NameSpace:   nameSpace,
-		ServiceName: serviceName,
+		ServiceName: serviceNames,
 	})
 
 	if err != nil {
@@ -144,4 +147,46 @@ func handleExchangeProto(id uint64, conn net.Conn) error {
 	}
 
 	return nil
+}
+
+func parseServices() {
+	type Service struct {
+		Name    string
+		Address string
+	}
+
+	serviceMap := make(map[string]Service)
+
+	for _, env := range os.Environ() {
+
+		splits := strings.Split(env, "=")
+		if len(splits) != 2 {
+			continue
+		}
+		name, value := splits[0], splits[1]
+
+		if strings.HasPrefix(name, "SERVICE_NAME") {
+			serviceID := strings.TrimPrefix(name, "SERVICE_NAME")
+			svc, ok := serviceMap[serviceID]
+			if !ok {
+				svc = Service{}
+			}
+			svc.Name = value
+			serviceMap[serviceID] = svc
+		}
+
+		if strings.HasPrefix(name, "SERVICE_ADDRESS") {
+			serviceID := strings.TrimPrefix(name, "SERVICE_ADDRESS")
+			svc, ok := serviceMap[serviceID]
+			if !ok {
+				svc = Service{}
+			}
+			svc.Address = value
+			serviceMap[serviceID] = svc
+		}
+	}
+
+	for _, svc := range serviceMap {
+		serviceRegistry[svc.Name] = svc.Address
+	}
 }
