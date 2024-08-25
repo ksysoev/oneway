@@ -1,0 +1,42 @@
+services:
+  exchange:
+    image: golang:1.23
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - MANAGE_API=:9090
+      - CONNECTION_API=:9091
+      - PROXY_SERVER=:1080
+    ports:
+      - "9090"
+      - "9091"
+      - "1080:1080"
+    command: >
+      go run /app/exchange/main.go
+  revproxy:
+    image: golang:1.23
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - EXCHANGE_MANAGE_API=exchange:9090
+      - EXCHANGE_CONNECTION_API=exchange:9091
+      - SERVICE_NAME=echoserver
+      - SERVICE_ADDRESS=echoserver:9090
+      - NAMESPACE=example
+    command: >
+      go run /app/revproxy/main.go
+    depends_on:
+      - exchange
+  echoserver:
+    image: golang:1.23
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - GRPC_LISTEN=:9090
+    command: >
+      go run /app/example/echoserver/main.go
+    depends_on:
+      - revproxy

@@ -18,16 +18,36 @@ import (
 
 var serviceRegistry = make(map[string]string)
 
-const NameSpace = "oneway"
-
 func main() {
 	ctx := context.Background()
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 	defer cancel()
 
-	serviceRegistry["echoserver"] = "localhost:9095"
+	serviceName := os.Getenv("SERVICE_NAME")
+	serviceAddress := os.Getenv("SERVICE_ADDRESS")
+	if serviceName == "" || serviceAddress == "" {
+		slog.Error("service name or address not provided")
+		return
+	}
 
-	conn, err := grpc.NewClient("localhost:9090", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	serviceRegistry[serviceName] = serviceAddress
+
+	exchangeManageAPI := os.Getenv("EXCHANGE_MANAGE_API")
+	exchangeConnectionAPI := os.Getenv("EXCHANGE_CONNECTION_API")
+
+	if exchangeManageAPI == "" || exchangeConnectionAPI == "" {
+		slog.Error("exchange manage or connection api not provided")
+		return
+	}
+
+	nameSpace := os.Getenv("NAMESPACE")
+
+	if nameSpace == "" {
+		slog.Error("namespace not provided")
+		return
+	}
+
+	conn, err := grpc.NewClient(exchangeManageAPI, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
 		return
@@ -36,8 +56,8 @@ func main() {
 	exchangeService := api.NewExchangeServiceClient(conn)
 
 	sub, err := exchangeService.RegisterService(ctx, &api.RegisterRequest{
-		NameSpace:   NameSpace,
-		ServiceName: "echoserver",
+		NameSpace:   nameSpace,
+		ServiceName: serviceName,
 	})
 
 	if err != nil {
@@ -54,7 +74,7 @@ func main() {
 			break
 		}
 
-		if cmd.NameSpace != NameSpace {
+		if cmd.NameSpace != nameSpace {
 			slog.Error("invalid namespace")
 			continue
 		}
@@ -64,12 +84,12 @@ func main() {
 			slog.Error("service not found")
 			continue
 		}
-		go handleRequest(ctx, cmd, address)
+		go handleRequest(ctx, exchangeConnectionAPI, cmd, address)
 	}
 
 }
 
-func handleRequest(ctx context.Context, cmd *api.ConnectCommand, dest string) {
+func handleRequest(ctx context.Context, connAPI string, cmd *api.ConnectCommand, dest string) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -81,7 +101,7 @@ func handleRequest(ctx context.Context, cmd *api.ConnectCommand, dest string) {
 
 	defer connDest.Close()
 
-	revConn, err := net.Dial("tcp", "localhost:9091")
+	revConn, err := net.Dial("tcp", connAPI)
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
 	}

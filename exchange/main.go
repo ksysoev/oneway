@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/ksysoev/oneway/api"
@@ -17,6 +19,7 @@ import (
 )
 
 type ExchangeService struct {
+	ctx     context.Context
 	lock    sync.Mutex
 	srvs    map[string]*Service
 	pooller *ConnectionPooler
@@ -35,6 +38,8 @@ func (s *ExchangeService) RegisterService(req *api.RegisterRequest, stream grpc.
 
 	for {
 		select {
+		case <-s.ctx.Done():
+			return nil
 		case <-stream.Context().Done():
 			return nil
 		case cmd, ok := <-commandChan:
@@ -98,11 +103,20 @@ func startAPI(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	pooler := NewConnectionPooler(":9091")
+	connAPI := os.Getenv("CONNECTION_API")
+	manageAPI := os.Getenv("MANAGE_API")
+	proxyServer := os.Getenv("PROXY_SERVER")
+
+	if connAPI == "" || manageAPI == "" || proxyServer == "" {
+		return fmt.Errorf("connection, manage or proxy server api not provided")
+	}
+
+	pooler := NewConnectionPooler(connAPI)
 
 	exchange := &ExchangeService{
 		srvs:    make(map[string]*Service),
 		pooller: pooler,
+		ctx:     ctx,
 	}
 
 	grpcServer := grpc.NewServer()
@@ -137,7 +151,7 @@ func startAPI(ctx context.Context) error {
 		},
 	}
 
-	lis, err := net.Listen("tcp", ":9090")
+	lis, err := net.Listen("tcp", manageAPI)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
@@ -158,7 +172,7 @@ func startAPI(ctx context.Context) error {
 	go func() {
 		defer cancel()
 
-		lis, err := net.Listen("tcp", ":1080")
+		lis, err := net.Listen("tcp", proxyServer)
 		if err != nil {
 			slog.Error("Failed to listen", slog.Any("error", err))
 			return
@@ -193,4 +207,181 @@ func startAPI(ctx context.Context) error {
 type connection struct {
 	conn net.Conn
 	id   uint64
+}
+
+type ConnectionPooler struct {
+	lock   sync.Mutex
+	conns  map[uint64]*ConnectCommand
+	listen string
+}
+
+func NewConnectionPooler(listen string) *ConnectionPooler {
+	return &ConnectionPooler{
+		listen: listen,
+		conns:  make(map[uint64]*ConnectCommand),
+	}
+}
+
+func (p *ConnectionPooler) WaitForConn(cmd *ConnectCommand) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	p.conns[cmd.ID] = cmd
+}
+
+func (p *ConnectionPooler) Run(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	ln, err := net.Listen("tcp", p.listen)
+	if err != nil {
+		return fmt.Errorf("failed to listen: %w", err)
+	}
+
+	slog.Info("Connection pooler started", slog.String("address", p.listen))
+
+	go func() {
+		<-ctx.Done()
+		ln.Close()
+	}()
+
+	wg := sync.WaitGroup{}
+	for ctx.Err() == nil {
+		conn, err := ln.Accept()
+		if errors.Is(err, net.ErrClosed) || errors.Is(err, syscall.EPIPE) {
+			break
+		}
+
+		if err != nil {
+			return fmt.Errorf("failed to accept connection: %w", err)
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := p.handleConn(conn)
+			if err != nil {
+				slog.Debug("failed to handle connection", slog.Any("error", err))
+			}
+		}()
+	}
+
+	wg.Wait()
+	return nil
+}
+
+func (p *ConnectionPooler) handleConn(conn net.Conn) error {
+	// read protocol version and authetication method from connenction
+
+	buf := make([]byte, 2)
+	n, err := conn.Read(buf)
+
+	if err != nil {
+		conn.Close()
+		return err
+	}
+
+	if n != 2 {
+		conn.Close()
+		return fmt.Errorf("invalid protocol version and authentication method")
+	}
+
+	ver := buf[0]
+	authMethod := buf[1]
+
+	if ver != 1 || authMethod != 0 {
+		conn.Close()
+		return fmt.Errorf("unsupported protocol version and authentication method")
+	}
+
+	buf = make([]byte, 8)
+
+	n, err = conn.Read(buf)
+
+	if err != nil {
+		conn.Close()
+		return err
+	}
+
+	if n != 8 {
+		conn.Close()
+		return fmt.Errorf("invalid command")
+	}
+
+	connId := binary.BigEndian.Uint64(buf)
+
+	p.lock.Lock()
+	cmd, ok := p.conns[connId]
+	p.lock.Unlock()
+
+	if !ok {
+		conn.Close()
+		return fmt.Errorf("invalid connection id")
+	}
+
+	cmd.RespChan <- ConnectCommandResponse{
+		Conn: conn,
+	}
+
+	return nil
+}
+
+type ConnectCommand struct {
+	NameSpace string
+	Name      string
+	ID        uint64
+	RespChan  chan<- ConnectCommandResponse
+}
+
+type ConnectCommandResponse struct {
+	Conn net.Conn
+	Err  error
+}
+
+type Service struct {
+	NameSpace string
+	Name      string
+	ctx       context.Context
+	currentID atomic.Uint64
+	cmdChan   chan<- ConnectCommand
+}
+
+func NewService(ctx context.Context, nameSpace, name string, cmdChan chan<- ConnectCommand) *Service {
+	return &Service{
+		ctx:       ctx,
+		NameSpace: nameSpace,
+		Name:      name,
+		currentID: atomic.Uint64{},
+		cmdChan:   cmdChan,
+	}
+}
+
+func (s *Service) RequestConn(ctx context.Context, name string) (net.Conn, error) {
+	id := s.currentID.Add(1)
+	respChan := make(chan ConnectCommandResponse, 1)
+
+	cmd := ConnectCommand{
+		NameSpace: s.NameSpace,
+		Name:      name,
+		ID:        id,
+		RespChan:  respChan,
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case s.cmdChan <- cmd:
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+
+	case resp := <-respChan:
+		if resp.Err != nil {
+			return nil, resp.Err
+		}
+
+		return resp.Conn, nil
+	}
 }

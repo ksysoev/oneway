@@ -29,7 +29,13 @@ func main() {
 	grpcServer := grpc.NewServer()
 	api.RegisterEchoServiceServer(grpcServer, &EchoService{})
 
-	lis, err := net.Listen("tcp", ":9095")
+	grpcAddr := os.Getenv("GRPC_LISTEN")
+	if grpcAddr == "" {
+		slog.Error("GRPC_PORT not provided")
+		return
+	}
+
+	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		slog.Error("Failed to listen", slog.Any("error", err))
 		return
