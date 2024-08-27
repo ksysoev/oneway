@@ -36,3 +36,7 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 func (s *Service) RegisterRevConProxy(ctx context.Context, nameSpace string, services []string) (*RevConProxy, error) {
 	return nil, nil
 }
+
+func (s *Service) AddConnection(id uint64, conn net.Conn) error {
+	return nil
+}

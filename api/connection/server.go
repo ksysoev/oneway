@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"sync"
 	"syscall"
 )
 
@@ -31,6 +32,9 @@ func NewServer(cb OnConnectCB) *Server {
 }
 
 func (s *Server) Serve(lis net.Listener) error {
+	wg := sync.WaitGroup{}
+	defer wg.Wait()
+
 	for {
 		s.sem <- token{}
 		conn, err := lis.Accept()
@@ -43,8 +47,12 @@ func (s *Server) Serve(lis net.Listener) error {
 			return fmt.Errorf("failed to accept connection: %w", err)
 		}
 
+		wg.Add(1)
 		go func() {
-			defer func() { <-s.sem }()
+			defer func() {
+				<-s.sem
+				wg.Done()
+			}()
 
 			s.handleConn(conn)
 		}()
