@@ -1,0 +1,48 @@
+package exchange
+
+import (
+	"fmt"
+)
+
+type RevConProxy struct {
+	NameSpace string
+	Services  []string
+	cmdStream chan RevConProxyCommand
+}
+
+type RevConProxyCommand struct {
+	NameSpace string
+	Name      string
+	ConnID    uint64
+}
+
+func NewRevConProxy(nameSpace string, services []string) (*RevConProxy, error) {
+	if nameSpace == "" {
+		return nil, fmt.Errorf("name space is empty")
+	}
+
+	if len(services) == 0 {
+		return nil, fmt.Errorf("services list is empty")
+	}
+
+	uniqIndex := make(map[string]struct{})
+	for _, service := range services {
+		if service == "" {
+			return nil, fmt.Errorf("service name is empty")
+		}
+
+		if _, ok := uniqIndex[service]; ok {
+			return nil, fmt.Errorf("duplicate service name %s", service)
+		}
+	}
+
+	return &RevConProxy{
+		NameSpace: nameSpace,
+		Services:  services,
+		cmdStream: make(chan RevConProxyCommand),
+	}, nil
+}
+
+func (r *RevConProxy) CommandStream() <-chan RevConProxyCommand {
+	return r.cmdStream
+}
