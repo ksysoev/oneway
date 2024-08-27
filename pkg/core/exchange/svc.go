@@ -2,8 +2,11 @@ package exchange
 
 import (
 	"context"
+	"fmt"
 	"net"
 )
+
+var ErrConnReqNotFound = fmt.Errorf("connection request not found")
 
 type RevConProxyCommand struct {
 	NameSpace string
@@ -13,7 +16,14 @@ type RevConProxyCommand struct {
 
 type Service struct{}
 
-type RevConProxy struct{}
+type RevConProxy struct {
+	NameSpace string
+}
+
+type ConnResult struct {
+	Conn net.Conn
+	Err  error
+}
 
 func New() *Service {
 	return &Service{}
