@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 )
 
 var ErrConnReqNotFound = fmt.Errorf("connection request not found")
@@ -39,12 +40,20 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 	connChan := make(chan ConnResult, 1)
 	id := s.connQueue.AddRequest(connChan)
 
-	proxy, err := s.revProxyRepo.GetRevConProxy(address)
+	splits := strings.Split(address, ".")
+
+	if len(splits) != 2 {
+		return nil, fmt.Errorf("invalid address")
+	}
+
+	service, nameSpace := splits[0], splits[1]
+
+	proxy, err := s.revProxyRepo.GetRevConProxy(nameSpace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reverse connection proxy: %w", err)
 	}
 
-	err = proxy.RequestConnection(ctx, id, address)
+	err = proxy.RequestConnection(ctx, id, service)
 	if err != nil {
 		return nil, fmt.Errorf("failed to request connection: %w", err)
 	}
