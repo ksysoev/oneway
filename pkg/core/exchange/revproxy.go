@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -45,4 +46,19 @@ func NewRevConProxy(nameSpace string, services []string) (*RevConProxy, error) {
 
 func (r *RevConProxy) CommandStream() <-chan RevConProxyCommand {
 	return r.cmdStream
+}
+
+func (r *RevConProxy) RequestConnection(ctx context.Context, id uint64, name string) error {
+	cmd := RevConProxyCommand{
+		NameSpace: r.NameSpace,
+		Name:      name,
+		ConnID:    id,
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case r.cmdStream <- cmd:
+		return nil
+	}
 }
