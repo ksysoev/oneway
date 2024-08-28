@@ -13,7 +13,7 @@ services:
       - "9091"
       - "1080:1080"
     command: >
-      go run /app/exchange/main.go
+      go run /app/cmd/oneway/main.go exchange
   revproxy:
     image: golang:1.23
     volumes:

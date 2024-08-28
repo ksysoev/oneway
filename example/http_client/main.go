@@ -32,7 +32,7 @@ func main() {
 	}
 
 	// Make the HTTP request
-	resp, err := client.Get("http://restapi/health")
+	resp, err := client.Get("http://restapi.example/health")
 	if err != nil {
 		fmt.Printf("Failed to make HTTP request: %v\n", err)
 		return

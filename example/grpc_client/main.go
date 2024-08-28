@@ -29,7 +29,7 @@ func main() {
 			func(ctx context.Context, addr string) (net.Conn, error) {
 				slog.Info("dialing", slog.String("address", addr))
 
-				conn, err := ctxDialer.DialContext(ctx, "tcp", "echoserver:9095")
+				conn, err := ctxDialer.DialContext(ctx, "tcp", "echoserver.example:9095")
 				if err != nil {
 					slog.Error("failed to dial", slog.Any("error", err))
 					return nil, err
