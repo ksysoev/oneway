@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/ksysoev/oneway/pkg/svc/connapi"
 	"github.com/ksysoev/oneway/pkg/svc/ctrlapi"
 	"github.com/ksysoev/oneway/pkg/svc/proxy"
@@ -14,12 +16,12 @@ type AppConfig struct {
 
 var appConfig = &AppConfig{
 	CtrlApi: &ctrlapi.Config{
-		Listen: ":9090",
+		Listen: os.Getenv("MANAGE_API"),
 	},
 	ConnApi: &connapi.Config{
-		Listen: ":9091",
+		Listen: os.Getenv("CONNECTION_API"),
 	},
 	ProxyApi: &proxy.Config{
-		Listen: ":1080",
+		Listen: os.Getenv("PROXY_SERVER"),
 	},
 }

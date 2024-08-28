@@ -2,9 +2,11 @@ package connapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
+	"syscall"
 
 	"github.com/ksysoev/oneway/api/connection"
 )
@@ -24,7 +26,8 @@ type Config struct {
 
 func New(cfg *Config, exchange ExchangeService) *API {
 	return &API{
-		listen: cfg.Listen,
+		listen:   cfg.Listen,
+		exchange: exchange,
 	}
 }
 
@@ -46,7 +49,12 @@ func (a *API) Run(ctx context.Context) error {
 
 	connAPI := connection.NewServer(a.ConnectionHandler)
 
-	return connAPI.Serve(lis)
+	err = connAPI.Serve(lis)
+	if errors.Is(err, net.ErrClosed) || errors.Is(err, syscall.EPIPE) {
+		return nil
+	}
+
+	return err
 }
 
 func (a *API) ConnectionHandler(id uint64, conn net.Conn) {

@@ -14,7 +14,6 @@ import (
 
 func runExchange(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
-	cancel()
 
 	connQueue := repo.NewConnectionQueue()
 	revProxyRegistry := repo.NewRevProxyRegistry()
@@ -27,9 +26,18 @@ func runExchange(ctx context.Context) error {
 
 	errs := make(chan error, 3)
 
-	go func() { errs <- ctrlAPI.Run(ctx) }()
-	go func() { errs <- connApi.Run(ctx) }()
-	go func() { errs <- sock5.Run(ctx) }()
+	go func() {
+		defer cancel()
+		errs <- ctrlAPI.Run(ctx)
+	}()
+	go func() {
+		defer cancel()
+		errs <- connApi.Run(ctx)
+	}()
+	go func() {
+		defer cancel()
+		errs <- sock5.Run(ctx)
+	}()
 
 	return collectErrs(errs, 3)
 }
