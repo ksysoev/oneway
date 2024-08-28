@@ -1,4 +1,4 @@
-package Proxy
+package proxy
 
 import (
 	"context"
@@ -30,7 +30,7 @@ type Service struct {
 	exchange ExchangeService
 }
 
-func New(cfg Config, exchange ExchangeService) *Service {
+func New(cfg *Config, exchange ExchangeService) *Service {
 	svc := &Service{
 		addr:     cfg.Listen,
 		exchange: exchange,

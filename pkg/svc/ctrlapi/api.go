@@ -3,29 +3,54 @@ package ctrlapi
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net"
 
 	"github.com/ksysoev/oneway/api"
 	"github.com/ksysoev/oneway/pkg/core/exchange"
 	"google.golang.org/grpc"
 )
 
-type RevConProxy interface {
-	CommandStream() <-chan exchange.RevConProxyCommand
-}
-
 type ExchangeService interface {
-	RegisterRevConProxy(ctx context.Context, nameSpace string, services []string) (RevConProxy, error)
+	RegisterRevConProxy(ctx context.Context, nameSpace string, services []string) (*exchange.RevConProxy, error)
 }
 
 type API struct {
+	listen   string
 	exchange ExchangeService
 	api.UnimplementedExchangeServiceServer
 }
 
-func New(exchange ExchangeService) *API {
+type Config struct {
+	Listen string
+}
+
+func New(cfg *Config, exchange ExchangeService) *API {
 	return &API{
 		exchange: exchange,
+		listen:   cfg.Listen,
 	}
+}
+
+func (a *API) Run(ctx context.Context) error {
+	srv := grpc.NewServer()
+	api.RegisterExchangeServiceServer(srv, a)
+
+	grpcServer := grpc.NewServer()
+	api.RegisterExchangeServiceServer(grpcServer, a)
+
+	lis, err := net.Listen("tcp", a.listen)
+	if err != nil {
+		return fmt.Errorf("failed to listen: %w", err)
+	}
+
+	go func() {
+		<-ctx.Done()
+		grpcServer.GracefulStop()
+	}()
+
+	slog.Info("Control API started", slog.String("address", lis.Addr().String()))
+	return grpcServer.Serve(lis)
 }
 
 func (a *API) RegisterService(req *api.RegisterRequest, stream grpc.ServerStreamingServer[api.ConnectCommand]) error {

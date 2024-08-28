@@ -14,7 +14,7 @@ func ExchangeCommand() *cobra.Command {
 		Short: "Start the exchange server",
 		Long:  "Start the exchange server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runExchange()
+			return runExchange(cmd.Context())
 		},
 	}
 }

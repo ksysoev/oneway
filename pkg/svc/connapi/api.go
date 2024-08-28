@@ -22,7 +22,7 @@ type Config struct {
 	Listen string
 }
 
-func New(cfg Config, exchange ExchangeService) *API {
+func New(cfg *Config, exchange ExchangeService) *API {
 	return &API{
 		listen: cfg.Listen,
 	}
@@ -50,5 +50,8 @@ func (a *API) Run(ctx context.Context) error {
 }
 
 func (a *API) ConnectionHandler(id uint64, conn net.Conn) {
-
+	err := a.exchange.AddConnection(id, conn)
+	if err != nil {
+		slog.Error("Failed to add connection", slog.Any("error", err))
+	}
 }

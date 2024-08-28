@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ksysoev/oneway/pkg/core/exchange"
@@ -17,16 +18,22 @@ func NewRevProxyRegistry() *RevProxyRegistry {
 	}
 }
 
-func (r *RevProxyRegistry) RegisterRevConProxy(proxy *exchange.RevConProxy) {
+func (r *RevProxyRegistry) AddRevConProxy(proxy *exchange.RevConProxy) {
 	r.rwl.Lock()
 	defer r.rwl.Unlock()
 
 	r.store[proxy.NameSpace] = proxy
 }
 
-func (r *RevProxyRegistry) GetRevConProxy(nameSpace string) *exchange.RevConProxy {
+func (r *RevProxyRegistry) GetRevConProxy(nameSpace string) (*exchange.RevConProxy, error) {
 	r.rwl.RLock()
 	defer r.rwl.RUnlock()
 
-	return r.store[nameSpace]
+	proxy, ok := r.store[nameSpace]
+
+	if !ok {
+		return nil, fmt.Errorf("rev con proxy not found")
+	}
+
+	return proxy, nil
 }
