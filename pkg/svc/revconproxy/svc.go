@@ -11,7 +11,7 @@ import (
 )
 
 type rcpService interface {
-	CreateConnection(ctx context.Context, nameSpace string, serviceName string) error
+	CreateConnection(ctx context.Context, nameSpace string, serviceName string, id uint64) error
 }
 
 type ServiceCongfig struct {
