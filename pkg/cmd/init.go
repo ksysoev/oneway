@@ -18,3 +18,14 @@ func ExchangeCommand() *cobra.Command {
 		},
 	}
 }
+
+func RevConProxyCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "revconproxy",
+		Short: "Start the RevConProxy server",
+		Long:  "Start the RevConProxy server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runRevConProxy(cmd.Context())
+		},
+	}
+}
