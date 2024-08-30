@@ -6,6 +6,7 @@ import (
 
 func InitCommands(cmd *cobra.Command) {
 	cmd.AddCommand(ExchangeCommand())
+	cmd.AddCommand(RevConProxyCommand())
 }
 
 func ExchangeCommand() *cobra.Command {

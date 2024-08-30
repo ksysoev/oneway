@@ -11,49 +11,34 @@ import (
 )
 
 type rcpService interface {
+	NameSpace() string
+	ServiceNames() []string
 	CreateConnection(ctx context.Context, nameSpace string, serviceName string, id uint64) error
 }
 
-type ServiceCongfig struct {
-	Name    string
-	Address string
-}
-
-type Config struct {
-	NameSpace string
-	CtrlAPI   string
-	ConnAPI   string
-	Services  []ServiceCongfig
-}
-
 type Proxy struct {
-	config  *Config
+	ctrlAPI string
 	rcpServ rcpService
 }
 
-func New(cfg *Config, rcpServ rcpService) *Proxy {
+func New(rcpServ rcpService, ctrlAPI string) *Proxy {
 	return &Proxy{
-		config:  cfg,
+		ctrlAPI: ctrlAPI,
 		rcpServ: rcpServ,
 	}
 }
 
 func (s *Proxy) Run(ctx context.Context) error {
-	conn, err := grpc.NewClient(s.config.CtrlAPI, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(s.ctrlAPI, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("failed to dial control api: %w", err)
 	}
 
 	exchangeService := api.NewExchangeServiceClient(conn)
 
-	serviceNames := make([]string, 0, len(s.config.Services))
-	for _, service := range s.config.Services {
-		serviceNames = append(serviceNames, service.Name)
-	}
-
 	sub, err := exchangeService.RegisterService(ctx, &api.RegisterRequest{
-		NameSpace:   s.config.NameSpace,
-		ServiceName: serviceNames,
+		NameSpace:   s.rcpServ.NameSpace(),
+		ServiceName: s.rcpServ.ServiceNames(),
 	})
 
 	if err != nil {

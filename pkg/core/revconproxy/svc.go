@@ -37,7 +37,12 @@ func New(cfg *Config) *RCPService {
 	return &RCPService{
 		config:   cfg,
 		srvcIndx: srvcIndx,
+		connAPI:  connection.NewClient(cfg.ConnAPI),
 	}
+}
+
+func (s *RCPService) NameSpace() string {
+	return s.config.NameSpace
 }
 
 func (s *RCPService) CreateConnection(ctx context.Context, nameSpace string, serviceName string, id uint64) error {
@@ -57,20 +62,17 @@ func (s *RCPService) CreateConnection(ctx context.Context, nameSpace string, ser
 
 	defer connDest.Close()
 
-	revConn, err := net.Dial("tcp", s.config.ConnAPI)
+	revConn, err := s.connAPI.Connect(id)
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
 	}
 
 	defer revConn.Close()
 
-	api := connection.NewConnectionServiceClient(revConn)
-	err = handleExchangeProto(cmd.Id, revConn)
 	if err != nil {
 		slog.Error("failed to handle exchange proto", slog.Any("error", err))
 	}
 
-	// TODO: in futre we can use splice or sockmap to avoid copying data in user space
 	go func() {
 		defer cancel()
 		_, _ = io.Copy(connDest, revConn)
@@ -84,4 +86,12 @@ func (s *RCPService) CreateConnection(ctx context.Context, nameSpace string, ser
 	<-ctx.Done()
 
 	return nil
+}
+
+func (s *RCPService) ServiceNames() []string {
+	serviceNames := make([]string, 0, len(s.config.Services))
+	for _, service := range s.config.Services {
+		serviceNames = append(serviceNames, service.Name)
+	}
+	return serviceNames
 }
