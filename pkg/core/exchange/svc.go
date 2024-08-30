@@ -53,8 +53,7 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 		return nil, fmt.Errorf("failed to get reverse connection proxy: %w", err)
 	}
 
-	err = proxy.RequestConnection(ctx, id, service)
-	if err != nil {
+	if err = proxy.RequestConnection(ctx, id, service); err != nil {
 		return nil, fmt.Errorf("failed to request connection: %w", err)
 	}
 

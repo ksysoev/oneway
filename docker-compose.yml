@@ -28,7 +28,7 @@ services:
       - SERVICE_ADDRESS2=httpserver:8080
       - NAMESPACE=example
     command: >
-      go run /app/revproxy/main.go
+      go run /app/cmd/oneway/main.go revconproxy
     depends_on:
       - exchange
   echoserver:
