@@ -1,27 +1,32 @@
 package cmd
 
 import (
-	"os"
+	"fmt"
+	"strings"
 
-	"github.com/ksysoev/oneway/pkg/svc/connapi"
-	"github.com/ksysoev/oneway/pkg/svc/ctrlapi"
-	"github.com/ksysoev/oneway/pkg/svc/proxy"
+	"github.com/ksysoev/oneway/pkg/core/revconproxy"
+	"github.com/spf13/viper"
 )
 
 type AppConfig struct {
-	CtrlApi  *ctrlapi.Config
-	ConnApi  *connapi.Config
-	ProxyApi *proxy.Config
+	Exchange *ExchaneConfig      `mapstructure:"exchange"`
+	Revproxy *revconproxy.Config `mapstructure:"revproxy"`
 }
 
-var appConfig = &AppConfig{
-	CtrlApi: &ctrlapi.Config{
-		Listen: os.Getenv("MANAGE_API"),
-	},
-	ConnApi: &connapi.Config{
-		Listen: os.Getenv("CONNECTION_API"),
-	},
-	ProxyApi: &proxy.Config{
-		Listen: os.Getenv("PROXY_SERVER"),
-	},
+func initConfig(configPath string) (*AppConfig, error) {
+	viper.SetConfigFile(configPath)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("failed to read config: %w", err)
+	}
+
+	cfg := &AppConfig{}
+
+	if err := viper.Unmarshal(cfg); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	return cfg, nil
 }

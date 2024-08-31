@@ -1,0 +1,17 @@
+exchange:
+  ctrl_api:
+    listen: ":9090"
+  conn_api: 
+    listen: ":9091"
+  proxy_server:
+    listen: ":1080"
+revproxy:
+  ctrl_api: "exchange:9090"
+  conn_api: "exchange:9091"
+  services:
+    - name: echoserver
+      address: "echoserver:9090"
+    - name: restapi
+      address: "httpserver:8080"
+  namespace: example
+

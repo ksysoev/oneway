@@ -12,7 +12,13 @@ import (
 	"github.com/ksysoev/oneway/pkg/svc/proxy"
 )
 
-func runExchange(ctx context.Context) error {
+type ExchaneConfig struct {
+	CtrlApi  *ctrlapi.Config `mapstructure:"ctrl_api"`
+	ConnApi  *connapi.Config `mapstructure:"conn_api"`
+	ProxyApi *proxy.Config   `mapstructure:"proxy_server"`
+}
+
+func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
 	ctx, cancel := context.WithCancel(ctx)
 
 	connQueue := repo.NewConnectionQueue()
@@ -20,9 +26,9 @@ func runExchange(ctx context.Context) error {
 
 	exchange := exchange.New(revProxyRegistry, connQueue)
 
-	ctrlAPI := ctrlapi.New(appConfig.CtrlApi, exchange)
-	connApi := connapi.New(appConfig.ConnApi, exchange)
-	sock5 := proxy.New(appConfig.ProxyApi, exchange)
+	ctrlAPI := ctrlapi.New(cfg.CtrlApi, exchange)
+	connApi := connapi.New(cfg.ConnApi, exchange)
+	sock5 := proxy.New(cfg.ProxyApi, exchange)
 
 	errs := make(chan error, 3)
 

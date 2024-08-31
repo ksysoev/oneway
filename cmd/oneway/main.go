@@ -7,7 +7,6 @@ import (
 	"os/signal"
 
 	"github.com/ksysoev/oneway/pkg/cmd"
-	"github.com/spf13/cobra"
 )
 
 func main() {
@@ -16,13 +15,7 @@ func main() {
 
 	defer cancel()
 
-	rootCmd := &cobra.Command{
-		Use:   "oneway",
-		Short: "oneway is mesh network",
-		Long:  "oneway is a mesh network that allows services to communicate with each other",
-	}
-
-	cmd.InitCommands(rootCmd)
+	rootCmd := cmd.InitCommands()
 
 	if err := rootCmd.ExecuteContext(ctx); err != nil {
 		slog.Error("failed to execute command", slog.Any("error", err))

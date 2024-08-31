@@ -11,15 +11,15 @@ import (
 )
 
 type Config struct {
-	NameSpace string
-	CtrlAPI   string
-	ConnAPI   string
-	Services  []ServiceCongfig
+	NameSpace string           `yaml:"namespace"`
+	CtrlAPI   string           `mapstructure:"ctrl_api"`
+	ConnAPI   string           `mapstructure:"conn_api"`
+	Services  []ServiceCongfig `yaml:"services"`
 }
 
 type ServiceCongfig struct {
-	Name    string
-	Address string
+	Name    string `yaml:"name"`
+	Address string `yaml:"address"`
 }
 
 type RCPService struct {
