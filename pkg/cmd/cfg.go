@@ -1,16 +1,17 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/ksysoev/oneway/pkg/core/revconproxy"
 	"github.com/spf13/viper"
 )
 
 type AppConfig struct {
-	Exchange *ExchaneConfig      `mapstructure:"exchange"`
-	Revproxy *revconproxy.Config `mapstructure:"revproxy"`
+	Exchange *ExchaneConfig  `mapstructure:"exchange"`
+	RevProxy *RevProxyConfig `mapstructure:"revproxy"`
 }
 
 func initConfig(configPath string) (*AppConfig, error) {
@@ -27,6 +28,9 @@ func initConfig(configPath string) (*AppConfig, error) {
 	if err := viper.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
+
+	encdedCfg, _ := json.MarshalIndent(cfg, "", "  ")
+	slog.Debug("config:\n" + string(encdedCfg))
 
 	return cfg, nil
 }

@@ -5,20 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"net"
+
+	"golang.org/x/net/context"
 )
 
 type Client struct {
-	addr string
+	addr   string
+	dialer net.Dialer
 }
 
 func NewClient(addr string) *Client {
 	return &Client{
-		addr: addr,
+		addr:   addr,
+		dialer: net.Dialer{},
 	}
 }
 
-func (c *Client) Connect(id uint64) (net.Conn, error) {
-	conn, err := net.Dial("tcp", c.addr)
+func (c *Client) Connect(ctx context.Context, id uint64) (net.Conn, error) {
+	conn, err := c.dialer.DialContext(ctx, "tcp", c.addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to server: %w", err)
 	}

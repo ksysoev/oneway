@@ -50,7 +50,7 @@ func RevProxyCommand(cfgPath *string) *cobra.Command {
 				return fmt.Errorf("failed to inititialize config: %w", err)
 			}
 
-			return runRevProxy(cmd.Context(), cfg.Revproxy)
+			return runRevProxy(cmd.Context(), cfg.RevProxy)
 		},
 	}
 }

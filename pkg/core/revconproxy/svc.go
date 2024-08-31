@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
-	"net"
-
-	"github.com/ksysoev/oneway/api/connection"
 )
+
+type BridgeProvider interface {
+	CreateConnection(ctx context.Context, id uint64, addr string) (src, dest io.ReadWriteCloser, err error)
+}
 
 type Config struct {
 	NameSpace string           `yaml:"namespace"`
 	CtrlAPI   string           `mapstructure:"ctrl_api"`
-	ConnAPI   string           `mapstructure:"conn_api"`
 	Services  []ServiceCongfig `yaml:"services"`
 }
 
@@ -23,21 +22,21 @@ type ServiceCongfig struct {
 }
 
 type RCPService struct {
-	config   *Config
-	srvcIndx map[string]string
-	connAPI  *connection.Client
+	config     *Config
+	srvcIndx   map[string]string
+	bridgeProv BridgeProvider
 }
 
-func New(cfg *Config) *RCPService {
+func New(cfg *Config, bridgeProv BridgeProvider) *RCPService {
 	srvcIndx := make(map[string]string)
 	for _, service := range cfg.Services {
 		srvcIndx[service.Name] = service.Address
 	}
 
 	return &RCPService{
-		config:   cfg,
-		srvcIndx: srvcIndx,
-		connAPI:  connection.NewClient(cfg.ConnAPI),
+		config:     cfg,
+		srvcIndx:   srvcIndx,
+		bridgeProv: bridgeProv,
 	}
 }
 
@@ -54,33 +53,19 @@ func (s *RCPService) CreateConnection(ctx context.Context, nameSpace string, ser
 		return fmt.Errorf("service not found")
 	}
 
-	connDest, err := net.Dial("tcp", dest)
-
+	connSrc, connDest, err := s.bridgeProv.CreateConnection(ctx, id, dest)
 	if err != nil {
-		slog.Error("failed to dial", slog.Any("error", err))
-	}
-
-	defer connDest.Close()
-
-	revConn, err := s.connAPI.Connect(id)
-	if err != nil {
-		slog.Error("failed to dial exchange", slog.Any("error", err))
-	}
-
-	defer revConn.Close()
-
-	if err != nil {
-		slog.Error("failed to handle exchange proto", slog.Any("error", err))
+		return fmt.Errorf("failed to create connection: %w", err)
 	}
 
 	go func() {
 		defer cancel()
-		_, _ = io.Copy(connDest, revConn)
+		_, _ = io.Copy(connDest, connSrc)
 	}()
 
 	go func() {
 		defer cancel()
-		_, _ = io.Copy(revConn, connDest)
+		_, _ = io.Copy(connSrc, connDest)
 	}()
 
 	<-ctx.Done()

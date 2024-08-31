@@ -4,13 +4,21 @@ import (
 	"context"
 
 	"github.com/ksysoev/oneway/pkg/core/revconproxy"
+	"github.com/ksysoev/oneway/pkg/prov/bridge"
 	revsvc "github.com/ksysoev/oneway/pkg/svc/revconproxy"
 )
 
-func runRevProxy(ctx context.Context, cfg *revconproxy.Config) error {
-	svc := revconproxy.New(cfg)
+type RevProxyConfig struct {
+	Service revconproxy.Config
+	ConnApi *bridge.Config `mapstructure:"conn_api"`
+}
 
-	revproxy := revsvc.New(svc, cfg.CtrlAPI)
+func runRevProxy(ctx context.Context, cfg *RevProxyConfig) error {
+	bridgeProvider := bridge.New(cfg.ConnApi)
+
+	svc := revconproxy.New(&cfg.Service, bridgeProvider)
+
+	revproxy := revsvc.New(svc, cfg.Service.CtrlAPI)
 
 	return revproxy.Run(ctx)
 }
