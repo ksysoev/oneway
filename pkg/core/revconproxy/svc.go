@@ -3,11 +3,13 @@ package revconproxy
 import (
 	"context"
 	"fmt"
-	"io"
+	"log/slog"
+
+	"github.com/ksysoev/oneway/pkg/core/network"
 )
 
 type BridgeProvider interface {
-	CreateConnection(ctx context.Context, id uint64, addr string) (src, dest io.ReadWriteCloser, err error)
+	CreateConnection(ctx context.Context, id uint64, addr string) (*network.Bridge, error)
 }
 
 type Config struct {
@@ -53,24 +55,18 @@ func (s *RCPService) CreateConnection(ctx context.Context, nameSpace string, ser
 		return fmt.Errorf("service not found")
 	}
 
-	connSrc, connDest, err := s.bridgeProv.CreateConnection(ctx, id, dest)
+	bridge, err := s.bridgeProv.CreateConnection(ctx, id, dest)
 	if err != nil {
-		return fmt.Errorf("failed to create connection: %w", err)
+		return fmt.Errorf("failed to create bridge: %w", err)
 	}
 
-	go func() {
-		defer cancel()
-		_, _ = io.Copy(connDest, connSrc)
-	}()
+	_, err = bridge.Run(ctx)
 
-	go func() {
-		defer cancel()
-		_, _ = io.Copy(connSrc, connDest)
-	}()
+	if err != nil {
+		slog.Error("failed to run bridge", slog.Any("error", err))
+	}
 
-	<-ctx.Done()
-
-	return nil
+	return err
 }
 
 func (s *RCPService) ServiceNames() []string {

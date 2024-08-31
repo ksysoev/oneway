@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/ksysoev/oneway/api/connection"
+	"github.com/ksysoev/oneway/pkg/core/network"
 )
 
 type Config struct {
@@ -31,19 +32,19 @@ func New(cfg *Config) *Bridge {
 	}
 }
 
-func (r *Bridge) CreateConnection(ctx context.Context, id uint64, addr string) (src, dest io.ReadWriteCloser, err error) {
-	src, err = r.createBackConnection(ctx, id)
+func (r *Bridge) CreateConnection(ctx context.Context, id uint64, addr string) (*network.Bridge, error) {
+	src, err := r.createBackConnection(ctx, id)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	dest, err = r.createDestConnection(ctx, addr)
+	dest, err := r.createDestConnection(ctx, addr)
 	if err != nil {
 		src.Close()
-		return nil, nil, err
+		return nil, err
 	}
 
-	return src, dest, nil
+	return network.NewBridge(src, dest), nil
 }
 
 func (r *Bridge) createBackConnection(ctx context.Context, id uint64) (io.ReadWriteCloser, error) {
