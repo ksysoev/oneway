@@ -5,7 +5,13 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
+
+var meter = otel.GetMeterProvider().Meter("oneway")
 
 var ErrConnReqNotFound = fmt.Errorf("connection request not found")
 
@@ -37,6 +43,9 @@ func New(revProxyRepo RevProxyRepo, connQueue ConnectionQueue) *Service {
 }
 
 func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, error) {
+	counter, _ := meter.Int64Counter("connection")
+	counter.Add(ctx, 1, metric.WithAttributes(attribute.String("address", address)))
+
 	connChan := make(chan ConnResult, 1)
 	id := s.connQueue.AddRequest(connChan)
 

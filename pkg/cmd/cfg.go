@@ -12,6 +12,7 @@ import (
 type AppConfig struct {
 	Exchange *ExchaneConfig  `mapstructure:"exchange"`
 	RevProxy *RevProxyConfig `mapstructure:"revproxy"`
+	Otel     *OtelConfig     `mapstructure:"otel"`
 }
 
 func initConfig(configPath string) (*AppConfig, error) {

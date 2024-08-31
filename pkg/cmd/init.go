@@ -34,6 +34,11 @@ func ExchangeCommand(cfgPath *string) *cobra.Command {
 				return fmt.Errorf("failed to inititialize config: %w", err)
 			}
 
+			err = InitOtel(cmd.Context(), cfg.Otel)
+			if err != nil {
+				return fmt.Errorf("failed to inititialize otel: %w", err)
+			}
+
 			return runExchange(cmd.Context(), cfg.Exchange)
 		},
 	}

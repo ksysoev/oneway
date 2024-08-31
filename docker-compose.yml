@@ -31,6 +31,14 @@ services:
       go run /app/cmd/oneway/main.go revproxy
     depends_on:
       - exchange
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - "./runtime/prometheus.yml:/etc/prometheus/prometheus.yml"
+    ports:
+      - 9090:9090
+    depends_on:
+      - exchange
   echoserver:
     image: golang:1.23
     volumes:

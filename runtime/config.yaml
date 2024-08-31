@@ -18,3 +18,8 @@ revproxy:
     address: "exchange:9091"
   
 
+otel:
+  meter:
+    service_name: oneway
+    listen: ":8080"
+    path: "/metrics"
