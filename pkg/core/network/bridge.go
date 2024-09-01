@@ -38,6 +38,7 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 
 	go func() {
 		defer cancel()
+
 		var err error
 
 		sent, err = io.Copy(b.src, b.dest)
@@ -46,6 +47,7 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 
 	go func() {
 		defer cancel()
+
 		var err error
 
 		recv, err = io.Copy(b.dest, b.src)
@@ -58,6 +60,7 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 	}()
 
 	errs := make([]error, 0, 3)
+
 	for i := 0; i < 3; i++ {
 		if err := <-errCh; err != nil && !errors.Is(err, net.ErrClosed) {
 			errs = append(errs, err)
@@ -83,6 +86,7 @@ func (b *Bridge) Close() error {
 	go func() { errsCh <- b.dest.Close() }()
 
 	errs := make([]error, 0, 2)
+
 	for i := 0; i < 2; i++ {
 		if err := <-errsCh; err != nil {
 			errs = append(errs, err)

@@ -56,7 +56,6 @@ func (s *Server) Serve(lis net.Listener) error {
 
 			s.handleConn(conn)
 		}()
-
 	}
 }
 
@@ -65,6 +64,7 @@ func (s *Server) handleConn(conn net.Conn) {
 	if err != nil {
 		slog.Error("failed to initialize connection", slog.Any("error", err))
 		conn.Close()
+
 		return
 	}
 
@@ -72,6 +72,7 @@ func (s *Server) handleConn(conn net.Conn) {
 	if err != nil {
 		slog.Error("failed to get connection id", slog.Any("error", err))
 		conn.Close()
+
 		return
 	}
 

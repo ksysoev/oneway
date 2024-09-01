@@ -50,6 +50,7 @@ func (a *API) Run(ctx context.Context) error {
 	}()
 
 	slog.Info("Control API started", slog.String("address", lis.Addr().String()))
+
 	return grpcServer.Serve(lis)
 }
 

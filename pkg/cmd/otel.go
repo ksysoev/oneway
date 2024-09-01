@@ -43,6 +43,7 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 		for _, fn := range shutdownFuncs {
 			err = errors.Join(err, fn(ctx))
 		}
+
 		shutdownFuncs = nil
 		return err
 	}
@@ -58,6 +59,7 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 		handleErr(err)
 		return
 	}
+
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
@@ -71,8 +73,8 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 
 	go func() {
 		<-ctx.Done()
-		err := shutdown(ctx)
-		if err != nil {
+
+		if err := shutdown(ctx); err != nil {
 			slog.Error("failed to shutdown otel", slog.Any("error", err))
 		}
 	}()
@@ -101,6 +103,7 @@ func serveMetrics(ctx context.Context, cfg *MeterConfig) error {
 	}
 
 	slog.Info("serving metrics", slog.Any("listen", cfg.Listen), slog.Any("path", cfg.Path))
+
 	lis, err := net.Listen("tcp", cfg.Listen)
 	if err != nil {
 		return err
@@ -108,6 +111,7 @@ func serveMetrics(ctx context.Context, cfg *MeterConfig) error {
 
 	go func() {
 		<-ctx.Done()
+
 		if err := httpSrv.Close(); err != nil {
 			slog.Error("failed to close metric server", slog.Any("error", err))
 		}

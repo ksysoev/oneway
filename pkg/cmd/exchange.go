@@ -50,8 +50,10 @@ func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
 
 func collectErrs(errs <-chan error, n int) error {
 	collectedErrs := make([]error, 0, n)
+
 	for i := 0; i < n; i++ {
 		err := <-errs
+
 		if err != nil {
 			collectedErrs = append(collectedErrs, err)
 		}
