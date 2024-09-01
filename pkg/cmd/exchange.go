@@ -13,9 +13,9 @@ import (
 )
 
 type ExchaneConfig struct {
-	CtrlApi  *ctrlapi.Config `mapstructure:"ctrl_api"`
-	ConnApi  *connapi.Config `mapstructure:"conn_api"`
-	ProxyApi *proxy.Config   `mapstructure:"proxy_server"`
+	CtrlAPI  *ctrlapi.Config `mapstructure:"ctrl_api"`
+	ConnAPI  *connapi.Config `mapstructure:"conn_api"`
+	ProxyAPI *proxy.Config   `mapstructure:"proxy_server"`
 }
 
 func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
@@ -24,11 +24,11 @@ func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
 	connQueue := repo.NewConnectionQueue()
 	revProxyRegistry := repo.NewRevProxyRegistry()
 
-	exchange := exchange.New(revProxyRegistry, connQueue)
+	exchangeSvc := exchange.New(revProxyRegistry, connQueue)
 
-	ctrlAPI := ctrlapi.New(cfg.CtrlApi, exchange)
-	connApi := connapi.New(cfg.ConnApi, exchange)
-	sock5 := proxy.New(cfg.ProxyApi, exchange)
+	ctrlAPI := ctrlapi.New(cfg.CtrlAPI, exchangeSvc)
+	connAPI := connapi.New(cfg.ConnAPI, exchangeSvc)
+	sock5 := proxy.New(cfg.ProxyAPI, exchangeSvc)
 
 	const expectedErrs = 3
 	errs := make(chan error, expectedErrs)
@@ -39,7 +39,7 @@ func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
 	}()
 	go func() {
 		defer cancel()
-		errs <- connApi.Run(ctx)
+		errs <- connAPI.Run(ctx)
 	}()
 	go func() {
 		defer cancel()

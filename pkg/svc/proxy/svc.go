@@ -45,7 +45,7 @@ func New(cfg *Config, exchange ExchangeService) *Service {
 	return svc
 }
 
-func (s *Service) dial(ctx context.Context, network, address string) (net.Conn, error) {
+func (s *Service) dial(ctx context.Context, _, address string) (net.Conn, error) {
 	addr, _, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to split address: %w", err)

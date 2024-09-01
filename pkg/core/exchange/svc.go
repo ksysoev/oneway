@@ -82,7 +82,7 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 	}
 }
 
-func (s *Service) RegisterRevConProxy(ctx context.Context, nameSpace string, services []string) (*RevConProxy, error) {
+func (s *Service) RegisterRevConProxy(_ context.Context, nameSpace string, services []string) (*RevConProxy, error) {
 	proxy, err := NewRevConProxy(nameSpace, services)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create reverse connection proxy: %w", err)

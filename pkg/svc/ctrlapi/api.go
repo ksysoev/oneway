@@ -25,9 +25,9 @@ type Config struct {
 	Listen string
 }
 
-func New(cfg *Config, exchange ExchangeService) *API {
+func New(cfg *Config, exchangeSvc ExchangeService) *API {
 	return &API{
-		exchange: exchange,
+		exchange: exchangeSvc,
 		listen:   cfg.Listen,
 	}
 }

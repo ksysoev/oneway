@@ -51,7 +51,8 @@ func (s *RCPService) NameSpace() string {
 	return s.config.NameSpace
 }
 
-func (s *RCPService) CreateConnection(ctx context.Context, nameSpace string, serviceName string, id uint64) error {
+// TODO Do i need namespace here as argument?
+func (s *RCPService) CreateConnection(ctx context.Context, _, serviceName string, id uint64) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

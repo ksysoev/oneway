@@ -28,7 +28,7 @@ func ExchangeCommand(cfgPath *string) *cobra.Command {
 		Use:   "exchange",
 		Short: "Start the Exchange server",
 		Long:  "Start the Exchange server",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := initConfig(*cfgPath)
 			if err != nil {
 				return fmt.Errorf("failed to inititialize config: %w", err)
@@ -49,7 +49,7 @@ func RevProxyCommand(cfgPath *string) *cobra.Command {
 		Use:   "revproxy",
 		Short: "Start the RevProxy server",
 		Long:  "Start the RevProxy server",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := initConfig(*cfgPath)
 			if err != nil {
 				return fmt.Errorf("failed to inititialize config: %w", err)

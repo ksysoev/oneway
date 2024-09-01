@@ -83,7 +83,7 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 	return
 }
 
-func newMeterProvider(cfg *MeterConfig) (*metric.MeterProvider, error) {
+func newMeterProvider(_ *MeterConfig) (*metric.MeterProvider, error) {
 	metricExporter, err := prometheus.New()
 	if err != nil {
 		return nil, err

@@ -21,7 +21,6 @@ type OnConnectCB func(id uint64, conn net.Conn)
 type Server struct {
 	onConnect OnConnectCB
 	sem       chan struct{}
-	listen    string
 }
 
 func NewServer(cb OnConnectCB) *Server {
