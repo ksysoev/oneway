@@ -8,6 +8,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	go.opentelemetry.io/otel v1.29.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.51.0
+	go.opentelemetry.io/otel/metric v1.29.0
 	go.opentelemetry.io/otel/sdk/metric v1.29.0
 	golang.org/x/net v0.28.0
 	google.golang.org/grpc v1.65.0
@@ -40,14 +41,12 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	go.opentelemetry.io/otel/metric v1.29.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org/mem v0.0.0-20220726221520-4f986261bf13 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
-	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect

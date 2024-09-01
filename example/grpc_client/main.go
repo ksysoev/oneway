@@ -42,6 +42,8 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 
+	defer conn.Close()
+
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
 		return
