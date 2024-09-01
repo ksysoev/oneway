@@ -30,7 +30,8 @@ func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
 	connApi := connapi.New(cfg.ConnApi, exchange)
 	sock5 := proxy.New(cfg.ProxyApi, exchange)
 
-	errs := make(chan error, 3)
+	const expectedErrs = 3
+	errs := make(chan error, expectedErrs)
 
 	go func() {
 		defer cancel()
@@ -45,7 +46,7 @@ func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
 		errs <- sock5.Run(ctx)
 	}()
 
-	return collectErrs(errs, 3)
+	return collectErrs(errs, expectedErrs)
 }
 
 func collectErrs(errs <-chan error, n int) error {

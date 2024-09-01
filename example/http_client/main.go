@@ -28,7 +28,7 @@ func main() {
 	// Create an HTTP client with the transport
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   10 * time.Second,
+		Timeout:   time.Second,
 	}
 
 	// Make the HTTP request

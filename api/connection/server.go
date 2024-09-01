@@ -80,7 +80,7 @@ func (s *Server) handleConn(conn net.Conn) {
 }
 
 func (s *Server) initialize(conn net.Conn) error {
-	buf := make([]byte, 2)
+	buf := make([]byte, connectionInitLength)
 	n, err := conn.Read(buf)
 
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *Server) initialize(conn net.Conn) error {
 		return fmt.Errorf("failed to read protocol version and authentication method: %w", err)
 	}
 
-	if n != 2 {
+	if n != connectionInitLength {
 		conn.Close()
 		return fmt.Errorf("invalid protocol version and authentication method")
 	}
@@ -110,7 +110,7 @@ func (s *Server) initialize(conn net.Conn) error {
 }
 
 func (s *Server) getConnectionID(conn net.Conn) (uint64, error) {
-	buf := make([]byte, 8)
+	buf := make([]byte, connectionIDLenght)
 
 	n, err := conn.Read(buf)
 
@@ -119,7 +119,7 @@ func (s *Server) getConnectionID(conn net.Conn) (uint64, error) {
 		return 0, fmt.Errorf("failed to read connection id: %w", err)
 	}
 
-	if n != 8 {
+	if n != connectionIDLenght {
 		conn.Close()
 		return 0, fmt.Errorf("invalid connection id")
 	}

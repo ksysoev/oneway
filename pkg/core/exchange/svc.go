@@ -11,6 +11,10 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+const (
+	addressParts = 2
+)
+
 var meter = otel.GetMeterProvider().Meter("oneway")
 
 var ErrConnReqNotFound = fmt.Errorf("connection request not found")
@@ -51,7 +55,7 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 
 	splits := strings.Split(address, ".")
 
-	if len(splits) != 2 {
+	if len(splits) != addressParts {
 		return nil, fmt.Errorf("invalid address")
 	}
 

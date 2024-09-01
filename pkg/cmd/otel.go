@@ -45,6 +45,7 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 		}
 
 		shutdownFuncs = nil
+
 		return err
 	}
 

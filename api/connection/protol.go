@@ -11,3 +11,8 @@ type AuthMethod byte
 const (
 	NoAuth AuthMethod = 0
 )
+
+const (
+	connectionIDLenght   = 8
+	connectionInitLength = 2
+)
