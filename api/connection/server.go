@@ -19,7 +19,6 @@ type token struct{}
 type OnConnectCB func(id uint64, conn net.Conn)
 
 type Server struct {
-	listen    string
 	onConnect OnConnectCB
 	sem       chan struct{}
 }
@@ -37,8 +36,8 @@ func (s *Server) Serve(lis net.Listener) error {
 
 	for {
 		s.sem <- token{}
-		conn, err := lis.Accept()
 
+		conn, err := lis.Accept()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) || errors.Is(err, syscall.EPIPE) {
 				return nil
@@ -48,6 +47,7 @@ func (s *Server) Serve(lis net.Listener) error {
 		}
 
 		wg.Add(1)
+
 		go func() {
 			defer func() {
 				<-s.sem
@@ -56,7 +56,6 @@ func (s *Server) Serve(lis net.Listener) error {
 
 			s.handleConn(conn)
 		}()
-
 	}
 }
 
@@ -65,6 +64,7 @@ func (s *Server) handleConn(conn net.Conn) {
 	if err != nil {
 		slog.Error("failed to initialize connection", slog.Any("error", err))
 		conn.Close()
+
 		return
 	}
 
@@ -72,6 +72,7 @@ func (s *Server) handleConn(conn net.Conn) {
 	if err != nil {
 		slog.Error("failed to get connection id", slog.Any("error", err))
 		conn.Close()
+
 		return
 	}
 
@@ -79,7 +80,7 @@ func (s *Server) handleConn(conn net.Conn) {
 }
 
 func (s *Server) initialize(conn net.Conn) error {
-	buf := make([]byte, 2)
+	buf := make([]byte, connectionInitLength)
 	n, err := conn.Read(buf)
 
 	if err != nil {
@@ -87,7 +88,7 @@ func (s *Server) initialize(conn net.Conn) error {
 		return fmt.Errorf("failed to read protocol version and authentication method: %w", err)
 	}
 
-	if n != 2 {
+	if n != connectionInitLength {
 		conn.Close()
 		return fmt.Errorf("invalid protocol version and authentication method")
 	}
@@ -109,7 +110,7 @@ func (s *Server) initialize(conn net.Conn) error {
 }
 
 func (s *Server) getConnectionID(conn net.Conn) (uint64, error) {
-	buf := make([]byte, 8)
+	buf := make([]byte, connectionIDLenght)
 
 	n, err := conn.Read(buf)
 
@@ -118,7 +119,7 @@ func (s *Server) getConnectionID(conn net.Conn) (uint64, error) {
 		return 0, fmt.Errorf("failed to read connection id: %w", err)
 	}
 
-	if n != 8 {
+	if n != connectionIDLenght {
 		conn.Close()
 		return 0, fmt.Errorf("invalid connection id")
 	}

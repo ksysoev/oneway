@@ -16,18 +16,18 @@ type ExchangeService interface {
 }
 
 type API struct {
-	listen   string
-	exchange ExchangeService
 	api.UnimplementedExchangeServiceServer
+	exchange ExchangeService
+	listen   string
 }
 
 type Config struct {
 	Listen string
 }
 
-func New(cfg *Config, exchange ExchangeService) *API {
+func New(cfg *Config, exchangeSvc ExchangeService) *API {
 	return &API{
-		exchange: exchange,
+		exchange: exchangeSvc,
 		listen:   cfg.Listen,
 	}
 }
@@ -50,6 +50,7 @@ func (a *API) Run(ctx context.Context) error {
 	}()
 
 	slog.Info("Control API started", slog.String("address", lis.Addr().String()))
+
 	return grpcServer.Serve(lis)
 }
 

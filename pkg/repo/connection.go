@@ -7,9 +7,9 @@ import (
 )
 
 type ConnectionQueue struct {
-	l         sync.Mutex
-	currentId uint64
 	store     map[uint64]chan exchange.ConnResult
+	currentID uint64
+	l         sync.Mutex
 }
 
 func NewConnectionQueue() *ConnectionQueue {
@@ -22,10 +22,10 @@ func (q *ConnectionQueue) AddRequest(connChan chan exchange.ConnResult) uint64 {
 	q.l.Lock()
 	defer q.l.Unlock()
 
-	q.currentId++
-	q.store[q.currentId] = connChan
+	q.currentID++
+	q.store[q.currentID] = connChan
 
-	return q.currentId
+	return q.currentID
 }
 
 func (q *ConnectionQueue) AddConnection(id uint64, conn exchange.ConnResult) error {

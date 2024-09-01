@@ -16,9 +16,15 @@ import (
 func main() {
 	ctx := context.Background()
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+
 	defer cancel()
 
 	dialer, err := proxy.SOCKS5("tcp", "localhost:1080", nil, nil)
+	if err != nil {
+		slog.Error("failed to create dialer", slog.Any("error", err))
+		return
+	}
+
 	ctxDialer, ok := dialer.(proxy.ContextDialer)
 	if !ok {
 		panic("dialer does not implement proxy.ContextDialer")
@@ -36,18 +42,19 @@ func main() {
 				}
 
 				slog.Info("connection established", slog.Any("address", addr))
+
 				return conn, nil
 			},
 		),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 
-	defer conn.Close()
-
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
 		return
 	}
+
+	defer conn.Close()
 
 	exchangeService := api.NewEchoServiceClient(conn)
 

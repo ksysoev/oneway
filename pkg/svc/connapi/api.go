@@ -16,8 +16,8 @@ type ExchangeService interface {
 }
 
 type API struct {
-	listen   string
 	exchange ExchangeService
+	listen   string
 }
 
 type Config struct {
@@ -39,8 +39,8 @@ func (a *API) Run(ctx context.Context) error {
 
 	go func() {
 		<-ctx.Done()
-		err := lis.Close()
-		if err != nil {
+
+		if err := lis.Close(); err != nil {
 			slog.Error("Failed to close listener", slog.Any("error", err))
 		}
 	}()

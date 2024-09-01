@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
@@ -21,6 +22,8 @@ import (
 //       prometheus:
 //         endpoint: "http://prometheus:9090/metrics"
 
+const Timeout = 10 * time.Second
+
 type MeterConfig struct {
 	ServiceName string `mapstructure:"service_name"`
 	Listen      string `mapstructure:"listen"`
@@ -32,8 +35,11 @@ type OtelConfig struct {
 	Meter *MeterConfig `mapstructure:"meter"`
 }
 
-func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
-	var shutdownFuncs []func(context.Context) error
+func InitOtel(ctx context.Context, cfg *OtelConfig) error {
+	var (
+		shutdownFuncs []func(context.Context) error
+		err           error
+	)
 
 	// shutdown calls cleanup functions registered via shutdownFuncs.
 	// The errors from the calls are joined.
@@ -43,7 +49,9 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 		for _, fn := range shutdownFuncs {
 			err = errors.Join(err, fn(ctx))
 		}
+
 		shutdownFuncs = nil
+
 		return err
 	}
 
@@ -56,8 +64,9 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 	meterProvider, err := newMeterProvider(cfg.Meter)
 	if err != nil {
 		handleErr(err)
-		return
+		return err
 	}
+
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
@@ -71,16 +80,16 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 
 	go func() {
 		<-ctx.Done()
-		err := shutdown(ctx)
-		if err != nil {
+
+		if err := shutdown(ctx); err != nil {
 			slog.Error("failed to shutdown otel", slog.Any("error", err))
 		}
 	}()
 
-	return
+	return err
 }
 
-func newMeterProvider(cfg *MeterConfig) (*metric.MeterProvider, error) {
+func newMeterProvider(_ *MeterConfig) (*metric.MeterProvider, error) {
 	metricExporter, err := prometheus.New()
 	if err != nil {
 		return nil, err
@@ -89,6 +98,7 @@ func newMeterProvider(cfg *MeterConfig) (*metric.MeterProvider, error) {
 	meterProvider := metric.NewMeterProvider(
 		metric.WithReader(metricExporter),
 	)
+
 	return meterProvider, nil
 }
 
@@ -97,10 +107,13 @@ func serveMetrics(ctx context.Context, cfg *MeterConfig) error {
 	mux.Handle(cfg.Path, promhttp.Handler())
 
 	httpSrv := &http.Server{
-		Handler: mux,
+		Handler:      mux,
+		ReadTimeout:  Timeout,
+		WriteTimeout: Timeout,
 	}
 
 	slog.Info("serving metrics", slog.Any("listen", cfg.Listen), slog.Any("path", cfg.Path))
+
 	lis, err := net.Listen("tcp", cfg.Listen)
 	if err != nil {
 		return err
@@ -108,6 +121,7 @@ func serveMetrics(ctx context.Context, cfg *MeterConfig) error {
 
 	go func() {
 		<-ctx.Done()
+
 		if err := httpSrv.Close(); err != nil {
 			slog.Error("failed to close metric server", slog.Any("error", err))
 		}

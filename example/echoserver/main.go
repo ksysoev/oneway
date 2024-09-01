@@ -15,7 +15,7 @@ type EchoService struct {
 	api.UnimplementedEchoServiceServer
 }
 
-func (s *EchoService) Echo(ctx context.Context, req *api.StringMessage) (*api.StringMessage, error) {
+func (s *EchoService) Echo(_ context.Context, req *api.StringMessage) (*api.StringMessage, error) {
 	slog.Info("Echo", slog.String("message", req.Value))
 
 	return &api.StringMessage{Value: req.Value}, nil
@@ -24,6 +24,7 @@ func (s *EchoService) Echo(ctx context.Context, req *api.StringMessage) (*api.St
 func main() {
 	ctx := context.Background()
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+
 	defer cancel()
 
 	grpcServer := grpc.NewServer()
@@ -47,6 +48,7 @@ func main() {
 	}()
 
 	slog.Info("Server started", slog.String("address", lis.Addr().String()))
+
 	if err := grpcServer.Serve(lis); err != nil {
 		slog.Error("Failed to serve", slog.Any("error", err))
 	}

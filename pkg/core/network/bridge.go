@@ -34,10 +34,13 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 	defer cancel()
 
 	startTime := time.Now()
-	errCh := make(chan error, 3)
+
+	const ExpectedErrors = 3
+	errCh := make(chan error, ExpectedErrors)
 
 	go func() {
 		defer cancel()
+
 		var err error
 
 		sent, err = io.Copy(b.src, b.dest)
@@ -46,6 +49,7 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 
 	go func() {
 		defer cancel()
+
 		var err error
 
 		recv, err = io.Copy(b.dest, b.src)
@@ -57,7 +61,8 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 		errCh <- b.Close()
 	}()
 
-	errs := make([]error, 0, 3)
+	errs := make([]error, 0, ExpectedErrors)
+
 	for i := 0; i < 3; i++ {
 		if err := <-errCh; err != nil && !errors.Is(err, net.ErrClosed) {
 			errs = append(errs, err)
@@ -77,12 +82,14 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 }
 
 func (b *Bridge) Close() error {
-	errsCh := make(chan error, 2)
+	const ExpectedErrors = 2
+	errsCh := make(chan error, ExpectedErrors)
 
 	go func() { errsCh <- b.src.Close() }()
 	go func() { errsCh <- b.dest.Close() }()
 
-	errs := make([]error, 0, 2)
+	errs := make([]error, 0, ExpectedErrors)
+
 	for i := 0; i < 2; i++ {
 		if err := <-errsCh; err != nil {
 			errs = append(errs, err)

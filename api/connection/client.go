@@ -47,7 +47,7 @@ func (c *Client) initialize(conn net.Conn, id uint64) error {
 		return fmt.Errorf("failed to write protocol version and authentication method: %w", err)
 	}
 
-	buf = make([]byte, 8)
+	buf = make([]byte, connectionIDLenght)
 	binary.BigEndian.PutUint64(buf, id)
 
 	_, err = conn.Write(buf)

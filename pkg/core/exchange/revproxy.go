@@ -6,9 +6,9 @@ import (
 )
 
 type RevConProxy struct {
+	cmdStream chan RevConProxyCommand
 	NameSpace string
 	Services  []string
-	cmdStream chan RevConProxyCommand
 }
 
 type RevConProxyCommand struct {
@@ -27,6 +27,7 @@ func NewRevConProxy(nameSpace string, services []string) (*RevConProxy, error) {
 	}
 
 	uniqIndex := make(map[string]struct{})
+
 	for _, service := range services {
 		if service == "" {
 			return nil, fmt.Errorf("service name is empty")

@@ -17,8 +17,8 @@ type rcpService interface {
 }
 
 type Proxy struct {
-	ctrlAPI string
 	rcpServ rcpService
+	ctrlAPI string
 }
 
 func New(rcpServ rcpService, ctrlAPI string) *Proxy {
@@ -55,6 +55,7 @@ func (s *Proxy) Run(ctx context.Context) error {
 		}
 
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
 			s.ConnectCommandHandler(ctx, cmd)

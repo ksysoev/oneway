@@ -8,8 +8,8 @@ import (
 )
 
 type RevProxyRegistry struct {
-	rwl   sync.RWMutex
 	store map[string]*exchange.RevConProxy
+	rwl   sync.RWMutex
 }
 
 func NewRevProxyRegistry() *RevProxyRegistry {

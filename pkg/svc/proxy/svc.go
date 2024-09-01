@@ -24,10 +24,10 @@ type Config struct {
 
 type Service struct {
 	srv      Server
-	addr     string
 	listener net.Listener
-	l        sync.Mutex
 	exchange ExchangeService
+	addr     string
+	l        sync.Mutex
 }
 
 func New(cfg *Config, exchange ExchangeService) *Service {
@@ -45,7 +45,7 @@ func New(cfg *Config, exchange ExchangeService) *Service {
 	return svc
 }
 
-func (s *Service) dial(ctx context.Context, network, address string) (net.Conn, error) {
+func (s *Service) dial(ctx context.Context, _, address string) (net.Conn, error) {
 	addr, _, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to split address: %w", err)

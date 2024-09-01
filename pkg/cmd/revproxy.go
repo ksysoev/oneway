@@ -9,12 +9,12 @@ import (
 )
 
 type RevProxyConfig struct {
+	ConnAPI *bridge.Config `mapstructure:"conn_api"`
 	Service revconproxy.Config
-	ConnApi *bridge.Config `mapstructure:"conn_api"`
 }
 
 func runRevProxy(ctx context.Context, cfg *RevProxyConfig) error {
-	bridgeProvider := bridge.New(cfg.ConnApi)
+	bridgeProvider := bridge.New(cfg.ConnAPI)
 
 	svc := revconproxy.New(&cfg.Service, bridgeProvider)
 
