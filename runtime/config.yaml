@@ -19,7 +19,7 @@ revproxy:
   
 
 otel:
+  service_name: oneway
   meter:
-    service_name: oneway
     listen: ":8080"
     path: "/metrics"

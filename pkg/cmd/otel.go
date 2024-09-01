@@ -9,8 +9,11 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
+	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 )
 
@@ -25,14 +28,13 @@ import (
 const Timeout = 10 * time.Second
 
 type MeterConfig struct {
-	ServiceName string `mapstructure:"service_name"`
-	Listen      string `mapstructure:"listen"`
-	Path        string `mapstructure:"path"`
+	Listen string `mapstructure:"listen"`
+	Path   string `mapstructure:"path"`
 }
 
 type OtelConfig struct {
-	// Tracer  *otel.Tracer
-	Meter *MeterConfig `mapstructure:"meter"`
+	Meter       *MeterConfig `mapstructure:"meter"`
+	ServiceName string       `mapstructure:"service_name"`
 }
 
 func InitOtel(ctx context.Context, cfg *OtelConfig) error {
@@ -78,6 +80,15 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) error {
 		}
 	}()
 
+	// Set up logger provider
+	loggerProvider, err := newLoggerProvider(cfg)
+	if err != nil {
+		handleErr(err)
+		return err
+	}
+
+	shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
+
 	go func() {
 		<-ctx.Done()
 
@@ -100,6 +111,24 @@ func newMeterProvider(_ *MeterConfig) (*metric.MeterProvider, error) {
 	)
 
 	return meterProvider, nil
+}
+
+func newLoggerProvider(cfg *OtelConfig) (*log.LoggerProvider, error) {
+	logExporter, err := stdoutlog.New()
+	if err != nil {
+		return nil, err
+	}
+
+	loggerProvider := log.NewLoggerProvider(
+		log.WithProcessor(log.NewBatchProcessor(logExporter)),
+	)
+
+	slog.SetDefault(
+		otelslog.NewLogger(
+			cfg.ServiceName,
+			otelslog.WithLoggerProvider(loggerProvider)))
+
+	return loggerProvider, nil
 }
 
 func serveMetrics(ctx context.Context, cfg *MeterConfig) error {
