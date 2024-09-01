@@ -59,7 +59,7 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 	errs := make([]error, 0, ExpectedErrors)
 
 	for i := 0; i < 3; i++ {
-		if err := <-errCh; err != nil && !errors.Is(err, net.ErrClosed) && errors.Is(err, syscall.ECONNRESET) {
+		if err := <-errCh; err != nil && !errors.Is(err, net.ErrClosed) && !errors.Is(err, syscall.ECONNRESET) {
 			errs = append(errs, err)
 		}
 

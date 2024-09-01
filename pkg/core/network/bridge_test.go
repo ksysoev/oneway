@@ -3,6 +3,7 @@ package network
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -18,13 +19,8 @@ func TestNewBridge(t *testing.T) {
 
 	bridge := NewBridge(src, dest)
 
-	if bridge.src != src {
-		t.Errorf("Expected source to be %v, but got %v", src, bridge.src)
-	}
-
-	if bridge.dest != dest {
-		t.Errorf("Expected destination to be %v, but got %v", dest, bridge.dest)
-	}
+	assert.Equal(t, src, bridge.src)
+	assert.Equal(t, dest, bridge.dest)
 }
 
 func TestBridge_Close(t *testing.T) {
@@ -153,6 +149,7 @@ func TestBridge_Run_Error(t *testing.T) {
 	go func() {
 		stats, err := bridge.Run(context.Background())
 
+		fmt.Println(err)
 		assert.ErrorIs(t, err, assert.AnError)
 		assert.Equal(t, int64(0), stats.Sent)
 		assert.Equal(t, int64(0), stats.Recv)
