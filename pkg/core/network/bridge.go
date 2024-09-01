@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"time"
 )
 
@@ -67,6 +68,8 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 	if len(errs) > 0 {
 		err = fmt.Errorf("error to run bridge: %w", errors.Join(errs...))
 	}
+
+	slog.Info("bridge finished")
 
 	return Stats{
 		Sent:     sent,

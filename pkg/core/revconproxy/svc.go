@@ -6,7 +6,12 @@ import (
 	"log/slog"
 
 	"github.com/ksysoev/oneway/pkg/core/network"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
+
+var meter = otel.GetMeterProvider().Meter("oneway")
 
 type BridgeProvider interface {
 	CreateConnection(ctx context.Context, id uint64, addr string) (*network.Bridge, error)
@@ -60,7 +65,13 @@ func (s *RCPService) CreateConnection(ctx context.Context, nameSpace string, ser
 		return fmt.Errorf("failed to create bridge: %w", err)
 	}
 
-	_, err = bridge.Run(ctx)
+	stats, err := bridge.Run(ctx)
+
+	counter, _ := meter.Int64Counter("transmitted_bytes")
+	counter.Add(ctx, stats.Sent, metric.WithAttributes(attribute.String("service", serviceName), attribute.String("direction", "sent")))
+	counter.Add(ctx, stats.Recv, metric.WithAttributes(attribute.String("service", serviceName), attribute.String("direction", "received")))
+	timing, _ := meter.Float64Histogram("connection_duration", metric.WithDescription("Connection duration in milliseconds"), metric.WithUnit("s"))
+	timing.Record(ctx, stats.Duration.Seconds(), metric.WithAttributes(attribute.String("service", serviceName)))
 
 	if err != nil {
 		slog.Error("failed to run bridge", slog.Any("error", err))
