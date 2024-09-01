@@ -6,9 +6,9 @@ import (
 )
 
 type RevConProxy struct {
+	cmdStream chan RevConProxyCommand
 	NameSpace string
 	Services  []string
-	cmdStream chan RevConProxyCommand
 }
 
 type RevConProxyCommand struct {

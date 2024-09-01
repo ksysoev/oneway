@@ -17,8 +17,8 @@ type rcpService interface {
 }
 
 type Proxy struct {
-	ctrlAPI string
 	rcpServ rcpService
+	ctrlAPI string
 }
 
 func New(rcpServ rcpService, ctrlAPI string) *Proxy {

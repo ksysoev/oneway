@@ -16,8 +16,8 @@ type ExchangeService interface {
 }
 
 type API struct {
-	listen   string
 	exchange ExchangeService
+	listen   string
 }
 
 type Config struct {

@@ -24,10 +24,10 @@ type Config struct {
 
 type Service struct {
 	srv      Server
-	addr     string
 	listener net.Listener
-	l        sync.Mutex
 	exchange ExchangeService
+	addr     string
+	l        sync.Mutex
 }
 
 func New(cfg *Config, exchange ExchangeService) *Service {

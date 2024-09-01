@@ -19,9 +19,9 @@ type token struct{}
 type OnConnectCB func(id uint64, conn net.Conn)
 
 type Server struct {
-	listen    string
 	onConnect OnConnectCB
 	sem       chan struct{}
+	listen    string
 }
 
 func NewServer(cb OnConnectCB) *Server {
