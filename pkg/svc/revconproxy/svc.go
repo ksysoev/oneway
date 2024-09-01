@@ -55,6 +55,7 @@ func (s *Proxy) Run(ctx context.Context) error {
 		}
 
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
 			s.ConnectCommandHandler(ctx, cmd)

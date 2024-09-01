@@ -36,8 +36,8 @@ func (s *Server) Serve(lis net.Listener) error {
 
 	for {
 		s.sem <- token{}
-		conn, err := lis.Accept()
 
+		conn, err := lis.Accept()
 		if err != nil {
 			if errors.Is(err, net.ErrClosed) || errors.Is(err, syscall.EPIPE) {
 				return nil
@@ -47,6 +47,7 @@ func (s *Server) Serve(lis net.Listener) error {
 		}
 
 		wg.Add(1)
+
 		go func() {
 			defer func() {
 				<-s.sem

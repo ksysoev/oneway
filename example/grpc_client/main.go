@@ -42,6 +42,7 @@ func main() {
 				}
 
 				slog.Info("connection established", slog.Any("address", addr))
+
 				return conn, nil
 			},
 		),

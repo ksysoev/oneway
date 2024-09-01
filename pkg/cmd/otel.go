@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
@@ -21,6 +22,8 @@ import (
 //       prometheus:
 //         endpoint: "http://prometheus:9090/metrics"
 
+const Timeout = 10 * time.Second
+
 type MeterConfig struct {
 	ServiceName string `mapstructure:"service_name"`
 	Listen      string `mapstructure:"listen"`
@@ -32,8 +35,11 @@ type OtelConfig struct {
 	Meter *MeterConfig `mapstructure:"meter"`
 }
 
-func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
-	var shutdownFuncs []func(context.Context) error
+func InitOtel(ctx context.Context, cfg *OtelConfig) error {
+	var (
+		shutdownFuncs []func(context.Context) error
+		err           error
+	)
 
 	// shutdown calls cleanup functions registered via shutdownFuncs.
 	// The errors from the calls are joined.
@@ -58,7 +64,7 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 	meterProvider, err := newMeterProvider(cfg.Meter)
 	if err != nil {
 		handleErr(err)
-		return
+		return err
 	}
 
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
@@ -80,7 +86,7 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) (err error) {
 		}
 	}()
 
-	return
+	return err
 }
 
 func newMeterProvider(_ *MeterConfig) (*metric.MeterProvider, error) {
@@ -92,6 +98,7 @@ func newMeterProvider(_ *MeterConfig) (*metric.MeterProvider, error) {
 	meterProvider := metric.NewMeterProvider(
 		metric.WithReader(metricExporter),
 	)
+
 	return meterProvider, nil
 }
 
@@ -100,7 +107,9 @@ func serveMetrics(ctx context.Context, cfg *MeterConfig) error {
 	mux.Handle(cfg.Path, promhttp.Handler())
 
 	httpSrv := &http.Server{
-		Handler: mux,
+		Handler:      mux,
+		ReadTimeout:  Timeout,
+		WriteTimeout: Timeout,
 	}
 
 	slog.Info("serving metrics", slog.Any("listen", cfg.Listen), slog.Any("path", cfg.Path))

@@ -7,9 +7,9 @@ import (
 )
 
 type ConnectionQueue struct {
-	l         sync.Mutex
-	currentID uint64
 	store     map[uint64]chan exchange.ConnResult
+	currentID uint64
+	l         sync.Mutex
 }
 
 func NewConnectionQueue() *ConnectionQueue {

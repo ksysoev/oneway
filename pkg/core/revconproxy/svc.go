@@ -86,5 +86,6 @@ func (s *RCPService) ServiceNames() []string {
 	for _, service := range s.config.Services {
 		serviceNames = append(serviceNames, service.Name)
 	}
+
 	return serviceNames
 }
