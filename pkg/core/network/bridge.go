@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
+	"net"
 	"time"
 )
 
@@ -54,12 +54,12 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 
 	go func() {
 		<-ctx.Done()
-		errCh <- b.src.Close()
+		errCh <- b.Close()
 	}()
 
 	errs := make([]error, 0, 3)
 	for i := 0; i < 3; i++ {
-		if err := <-errCh; err != nil {
+		if err := <-errCh; err != nil && !errors.Is(err, net.ErrClosed) {
 			errs = append(errs, err)
 		}
 	}
@@ -68,8 +68,6 @@ func (b *Bridge) Run(ctx context.Context) (Stats, error) {
 	if len(errs) > 0 {
 		err = fmt.Errorf("error to run bridge: %w", errors.Join(errs...))
 	}
-
-	slog.Info("bridge finished")
 
 	return Stats{
 		Sent:     sent,

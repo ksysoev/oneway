@@ -60,7 +60,7 @@ func (s *Service) dial(ctx context.Context, network, address string) (net.Conn, 
 }
 
 func (s *Service) proxyLogf(format string, args ...any) {
-	slog.Debug(fmt.Sprintf(format, args...))
+	slog.Info(fmt.Sprintf(format, args...))
 }
 
 func (s *Service) Run(ctx context.Context) error {
