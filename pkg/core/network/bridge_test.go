@@ -29,10 +29,10 @@ func TestNewBridge(t *testing.T) {
 
 func TestBridge_Close(t *testing.T) {
 	table := []struct {
-		name        string
 		srcErr      error
 		destErr     error
 		expectedErr error
+		name        string
 	}{
 		{
 			name:        "no errors",
