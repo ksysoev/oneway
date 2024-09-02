@@ -50,10 +50,14 @@ func New(revProxyRepo RevProxyRepo, connQueue ConnectionQueue) *Service {
 func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, error) {
 	ctx, span := tracer.Start(ctx, "Exchange.NewConnection")
 	defer span.End()
+
 	counter, _ := meter.Int64Counter("connection")
 	counter.Add(ctx, 1, metric.WithAttributes(attribute.String("address", address)))
+
 	connChan := make(chan ConnResult, 1)
+
 	id := s.connQueue.AddRequest(connChan)
+
 	span.AddEvent("Request added")
 
 	splits := strings.Split(address, ".")
@@ -72,6 +76,7 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 	if err = proxy.RequestConnection(ctx, id, service); err != nil {
 		return nil, fmt.Errorf("failed to request connection: %w", err)
 	}
+
 	span.AddEvent("Request sent")
 
 	select {

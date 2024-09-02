@@ -44,8 +44,8 @@ type TracerConfig struct {
 
 type OtelConfig struct {
 	Meter       *MeterConfig  `mapstructure:"meter"`
-	ServiceName string        `mapstructure:"service_name"`
 	Tracer      *TracerConfig `mapstructure:"tracer"`
+	ServiceName string        `mapstructure:"service_name"`
 }
 
 func InitOtel(ctx context.Context, cfg *OtelConfig) error {
@@ -83,6 +83,7 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) error {
 		handleErr(err)
 		return err
 	}
+
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
 
