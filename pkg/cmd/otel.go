@@ -11,19 +11,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
+	"go.opentelemetry.io/otel/log/global"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
-
-// otel:
-//   meter:
-//     service_name: oneway
-//     exporter:
-//       type: prometheus
-//       prometheus:
-//         endpoint: "http://prometheus:9090/metrics"
 
 const Timeout = 10 * time.Second
 
@@ -32,9 +31,21 @@ type MeterConfig struct {
 	Path   string `mapstructure:"path"`
 }
 
+//	tracer:
+//
+// agent: "jaeger:6831"
+// sampler:
+//
+//	type: "const"
+//	param: 1
+type TracerConfig struct {
+	Collector string `mapstructure:"collector"`
+}
+
 type OtelConfig struct {
-	Meter       *MeterConfig `mapstructure:"meter"`
-	ServiceName string       `mapstructure:"service_name"`
+	Meter       *MeterConfig  `mapstructure:"meter"`
+	ServiceName string        `mapstructure:"service_name"`
+	Tracer      *TracerConfig `mapstructure:"tracer"`
 }
 
 func InitOtel(ctx context.Context, cfg *OtelConfig) error {
@@ -62,6 +73,19 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) error {
 		err = errors.Join(inErr, shutdown(ctx))
 	}
 
+	// Set up propagator.
+	prop := newPropagator()
+	otel.SetTextMapPropagator(prop)
+
+	// Set up trace provider.
+	tracerProvider, err := newTraceProvider(cfg)
+	if err != nil {
+		handleErr(err)
+		return err
+	}
+	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
+	otel.SetTracerProvider(tracerProvider)
+
 	// Set up meter provider.
 	meterProvider, err := newMeterProvider(cfg.Meter)
 	if err != nil {
@@ -88,6 +112,7 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) error {
 	}
 
 	shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
+	global.SetLoggerProvider(loggerProvider)
 
 	go func() {
 		<-ctx.Done()
@@ -98,6 +123,49 @@ func InitOtel(ctx context.Context, cfg *OtelConfig) error {
 	}()
 
 	return err
+}
+
+func newPropagator() propagation.TextMapPropagator {
+	return propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
+}
+
+func newTraceProvider(cfg *OtelConfig) (*trace.TracerProvider, error) {
+	headers := map[string]string{
+		"content-type": "application/json",
+	}
+
+	traceExporter, err := otlptrace.New(
+		context.Background(),
+		otlptracehttp.NewClient(
+			otlptracehttp.WithEndpoint(cfg.Tracer.Collector),
+			otlptracehttp.WithHeaders(headers),
+			otlptracehttp.WithInsecure(),
+		),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	traceProvider := trace.NewTracerProvider(
+		trace.WithBatcher(
+			traceExporter,
+			trace.WithMaxExportBatchSize(trace.DefaultMaxExportBatchSize),
+			trace.WithBatchTimeout(trace.DefaultScheduleDelay*time.Millisecond),
+			trace.WithMaxExportBatchSize(trace.DefaultMaxExportBatchSize),
+		),
+		trace.WithResource(
+			resource.NewWithAttributes(
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String("product-app"),
+			),
+		),
+	)
+
+	return traceProvider, nil
 }
 
 func newMeterProvider(_ *MeterConfig) (*metric.MeterProvider, error) {

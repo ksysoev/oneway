@@ -7,6 +7,7 @@ import (
 	"net"
 	"sync"
 
+	"go.opentelemetry.io/otel"
 	"tailscale.com/net/socks5"
 )
 
@@ -45,7 +46,12 @@ func New(cfg *Config, exchange ExchangeService) *Service {
 	return svc
 }
 
+var tracer = otel.Tracer("github.com/ksysoev/oneway/pkg/svc/proxy")
+
 func (s *Service) dial(ctx context.Context, _, address string) (net.Conn, error) {
+	ctx, span := tracer.Start(ctx, "Proxy.Dial")
+	defer span.End()
+
 	addr, _, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to split address: %w", err)

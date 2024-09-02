@@ -23,3 +23,5 @@ otel:
   meter:
     listen: ":8080"
     path: "/metrics"
+  tracer:
+    collector: "jaeger:4318"
