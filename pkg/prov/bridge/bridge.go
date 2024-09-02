@@ -6,7 +6,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/ksysoev/oneway/api/connection"
+	"github.com/ksysoev/oneway/api/revconn"
 	"github.com/ksysoev/oneway/pkg/core/network"
 )
 
@@ -24,7 +24,7 @@ type Bridge struct {
 }
 
 func New(cfg *Config) *Bridge {
-	apiClient := connection.NewClient(cfg.Address)
+	apiClient := revconn.NewClient(cfg.Address)
 
 	return &Bridge{
 		apiClient: apiClient,

@@ -7,15 +7,15 @@ import (
 
 	"github.com/ksysoev/oneway/pkg/core/exchange"
 	"github.com/ksysoev/oneway/pkg/repo"
-	"github.com/ksysoev/oneway/pkg/svc/connapi"
 	"github.com/ksysoev/oneway/pkg/svc/ctrlapi"
 	"github.com/ksysoev/oneway/pkg/svc/proxy"
+	"github.com/ksysoev/oneway/pkg/svc/revconnapi"
 )
 
 type ExchaneConfig struct {
-	CtrlAPI  *ctrlapi.Config `mapstructure:"ctrl_api"`
-	ConnAPI  *connapi.Config `mapstructure:"conn_api"`
-	ProxyAPI *proxy.Config   `mapstructure:"proxy_server"`
+	CtrlAPI  *ctrlapi.Config    `mapstructure:"ctrl_api"`
+	ConnAPI  *revconnapi.Config `mapstructure:"conn_api"`
+	ProxyAPI *proxy.Config      `mapstructure:"proxy_server"`
 }
 
 func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
@@ -27,7 +27,7 @@ func runExchange(ctx context.Context, cfg *ExchaneConfig) error {
 	exchangeSvc := exchange.New(revProxyRegistry, connQueue)
 
 	ctrlAPI := ctrlapi.New(cfg.CtrlAPI, exchangeSvc)
-	connAPI := connapi.New(cfg.ConnAPI, exchangeSvc)
+	connAPI := revconnapi.New(cfg.ConnAPI, exchangeSvc)
 	sock5 := proxy.New(cfg.ProxyAPI, exchangeSvc)
 
 	const expectedErrs = 3
