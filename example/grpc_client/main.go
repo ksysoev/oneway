@@ -3,12 +3,11 @@ package main
 import (
 	"context"
 	"log/slog"
-	"net"
 	"os"
 	"os/signal"
 
+	"github.com/ksysoev/oneway/api/client"
 	"github.com/ksysoev/oneway/example/api"
-	"golang.org/x/net/proxy"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -19,35 +18,7 @@ func main() {
 
 	defer cancel()
 
-	dialer, err := proxy.SOCKS5("tcp", "localhost:1080", nil, nil)
-	if err != nil {
-		slog.Error("failed to create dialer", slog.Any("error", err))
-		return
-	}
-
-	ctxDialer, ok := dialer.(proxy.ContextDialer)
-	if !ok {
-		panic("dialer does not implement proxy.ContextDialer")
-	}
-
-	conn, err := grpc.NewClient("passthrough://",
-		grpc.WithContextDialer(
-			func(ctx context.Context, addr string) (net.Conn, error) {
-				slog.Info("dialing", slog.String("address", addr))
-
-				conn, err := ctxDialer.DialContext(ctx, "tcp", "echoserver.example:9095")
-				if err != nil {
-					slog.Error("failed to dial", slog.Any("error", err))
-					return nil, err
-				}
-
-				slog.Info("connection established", slog.Any("address", addr))
-
-				return conn, nil
-			},
-		),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	conn, err := client.NewGRPCClient("localhost:1080", "echoserver.example", grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
