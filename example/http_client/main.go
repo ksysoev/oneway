@@ -3,36 +3,20 @@ package main
 import (
 	"fmt"
 	"io"
-	"net/http"
-	"time"
 
-	"golang.org/x/net/proxy"
+	"github.com/ksysoev/oneway/api/client"
 )
 
 func main() {
-	// SOCKS5 proxy address
-	proxyAddr := "127.0.0.1:1080"
-
-	// Create a SOCKS5 dialer
-	dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
+	// Create an HTTP client with the transport
+	cl, err := client.NewHTTPClient("127.0.0.1:1080")
 	if err != nil {
-		fmt.Printf("Failed to create SOCKS5 dialer: %v\n", err)
+		fmt.Printf("Failed to create HTTP client: %v\n", err)
 		return
 	}
 
-	// Create an HTTP transport with the SOCKS5 dialer
-	transport := &http.Transport{
-		Dial: dialer.Dial,
-	}
-
-	// Create an HTTP client with the transport
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   time.Second,
-	}
-
 	// Make the HTTP request
-	resp, err := client.Get("http://restapi.example/health")
+	resp, err := cl.Get("http://restapi.example/health")
 	if err != nil {
 		fmt.Printf("Failed to make HTTP request: %v\n", err)
 		return
