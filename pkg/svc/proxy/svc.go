@@ -7,12 +7,13 @@ import (
 	"net"
 	"sync"
 
+	"github.com/ksysoev/oneway/pkg/core/network"
 	"go.opentelemetry.io/otel"
 	"tailscale.com/net/socks5"
 )
 
 type ExchangeService interface {
-	NewConnection(ctx context.Context, address string) (net.Conn, error)
+	NewConnection(ctx context.Context, address *network.Address) (net.Conn, error)
 }
 
 type Server interface {
@@ -52,9 +53,9 @@ func (s *Service) dial(ctx context.Context, _, address string) (net.Conn, error)
 	ctx, span := tracer.Start(ctx, "Proxy.Dial")
 	defer span.End()
 
-	addr, _, err := net.SplitHostPort(address)
+	addr, err := network.ParseAddress(address)
 	if err != nil {
-		return nil, fmt.Errorf("failed to split address: %w", err)
+		return nil, fmt.Errorf("failed to parse address: %w", err)
 	}
 
 	conn, err := s.exchange.NewConnection(ctx, addr)

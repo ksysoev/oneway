@@ -23,6 +23,7 @@ func TestRevProxyRegistry(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
+
 	if foundProxy != proxy {
 		t.Errorf("Expected foundProxy to be equal to proxy")
 	}
@@ -32,6 +33,7 @@ func TestRevProxyRegistry(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error, got nil")
 	}
+
 	if nonExistingProxy != nil {
 		t.Errorf("Expected nonExistingProxy to be nil")
 	}
@@ -44,6 +46,7 @@ func TestRevProxyRegistry(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error, got nil")
 	}
+
 	if unregisteredProxy != nil {
 		t.Errorf("Expected unregisteredProxy to be nil")
 	}

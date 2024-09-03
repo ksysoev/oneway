@@ -4,15 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 
+	"github.com/ksysoev/oneway/pkg/core/network"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-)
-
-const (
-	addressParts = 2
 )
 
 var meter = otel.GetMeterProvider().Meter("oneway")
@@ -48,12 +44,12 @@ func New(revProxyRepo RevProxyRepo, connQueue ConnectionQueue) *Service {
 	}
 }
 
-func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, error) {
+func (s *Service) NewConnection(ctx context.Context, addr *network.Address) (net.Conn, error) {
 	ctx, span := tracer.Start(ctx, "Exchange.NewConnection")
 	defer span.End()
 
 	counter, _ := meter.Int64Counter("connection")
-	counter.Add(ctx, 1, metric.WithAttributes(attribute.String("address", address)))
+	counter.Add(ctx, 1, metric.WithAttributes(attribute.String("address", addr.String())))
 
 	connChan := make(chan ConnResult, 1)
 
@@ -61,20 +57,12 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 
 	span.AddEvent("Request added")
 
-	splits := strings.Split(address, ".")
-
-	if len(splits) != addressParts {
-		return nil, fmt.Errorf("invalid address")
-	}
-
-	service, nameSpace := splits[0], splits[1]
-
-	proxy, err := s.revProxyRepo.Find(nameSpace)
+	proxy, err := s.revProxyRepo.Find(addr.NameSpace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reverse connection proxy: %w", err)
 	}
 
-	if err = proxy.RequestConnection(ctx, id, service); err != nil {
+	if err = proxy.RequestConnection(ctx, id, addr.Service); err != nil {
 		return nil, fmt.Errorf("failed to request connection: %w", err)
 	}
 
