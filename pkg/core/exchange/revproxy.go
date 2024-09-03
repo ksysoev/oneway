@@ -5,19 +5,19 @@ import (
 	"fmt"
 )
 
-type RevConProxy struct {
-	cmdStream chan RevConProxyCommand
+type RevProxy struct {
+	cmdStream chan RevProxyCommand
 	NameSpace string
 	Services  []string
 }
 
-type RevConProxyCommand struct {
+type RevProxyCommand struct {
 	NameSpace string
 	Name      string
 	ConnID    uint64
 }
 
-func NewRevConProxy(nameSpace string, services []string) (*RevConProxy, error) {
+func NewRevProxy(nameSpace string, services []string) (*RevProxy, error) {
 	if nameSpace == "" {
 		return nil, fmt.Errorf("name space is empty")
 	}
@@ -38,19 +38,19 @@ func NewRevConProxy(nameSpace string, services []string) (*RevConProxy, error) {
 		}
 	}
 
-	return &RevConProxy{
+	return &RevProxy{
 		NameSpace: nameSpace,
 		Services:  services,
-		cmdStream: make(chan RevConProxyCommand),
+		cmdStream: make(chan RevProxyCommand),
 	}, nil
 }
 
-func (r *RevConProxy) CommandStream() <-chan RevConProxyCommand {
+func (r *RevProxy) CommandStream() <-chan RevProxyCommand {
 	return r.cmdStream
 }
 
-func (r *RevConProxy) RequestConnection(ctx context.Context, id uint64, name string) error {
-	cmd := RevConProxyCommand{
+func (r *RevProxy) RequestConnection(ctx context.Context, id uint64, name string) error {
+	cmd := RevProxyCommand{
 		NameSpace: r.NameSpace,
 		Name:      name,
 		ConnID:    id,

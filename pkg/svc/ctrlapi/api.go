@@ -12,7 +12,8 @@ import (
 )
 
 type ExchangeService interface {
-	RegisterRevConProxy(ctx context.Context, nameSpace string, services []string) (*exchange.RevConProxy, error)
+	RegisterRevProxy(ctx context.Context, nameSpace string, services []string) (*exchange.RevProxy, error)
+	UnregisterRevProxy(proxy *exchange.RevProxy)
 }
 
 type API struct {
@@ -49,16 +50,18 @@ func (a *API) Run(ctx context.Context) error {
 		grpcServer.GracefulStop()
 	}()
 
-	slog.Info("Control API started", slog.String("address", lis.Addr().String()))
+	slog.InfoContext(ctx, "Control API started", slog.String("address", lis.Addr().String()))
 
 	return grpcServer.Serve(lis)
 }
 
 func (a *API) RegisterService(req *api.RegisterRequest, stream grpc.ServerStreamingServer[api.ConnectCommand]) error {
-	rcp, err := a.exchange.RegisterRevConProxy(stream.Context(), req.NameSpace, req.ServiceName)
+	rcp, err := a.exchange.RegisterRevProxy(stream.Context(), req.NameSpace, req.ServiceName)
 	if err != nil {
 		return err
 	}
+
+	defer a.exchange.UnregisterRevProxy(rcp)
 
 	cmdStream := rcp.CommandStream()
 

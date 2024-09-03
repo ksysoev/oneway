@@ -31,8 +31,9 @@ type ConnResult struct {
 }
 
 type RevProxyRepo interface {
-	AddRevConProxy(proxy *RevConProxy)
-	GetRevConProxy(nameSpace string) (*RevConProxy, error)
+	Register(proxy *RevProxy)
+	Find(nameSpace string) (*RevProxy, error)
+	Unregister(proxy *RevProxy)
 }
 
 type ConnectionQueue interface {
@@ -68,7 +69,7 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 
 	service, nameSpace := splits[0], splits[1]
 
-	proxy, err := s.revProxyRepo.GetRevConProxy(nameSpace)
+	proxy, err := s.revProxyRepo.Find(nameSpace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get reverse connection proxy: %w", err)
 	}
@@ -91,15 +92,19 @@ func (s *Service) NewConnection(ctx context.Context, address string) (net.Conn, 
 	}
 }
 
-func (s *Service) RegisterRevConProxy(_ context.Context, nameSpace string, services []string) (*RevConProxy, error) {
-	proxy, err := NewRevConProxy(nameSpace, services)
+func (s *Service) RegisterRevProxy(_ context.Context, nameSpace string, services []string) (*RevProxy, error) {
+	proxy, err := NewRevProxy(nameSpace, services)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create reverse connection proxy: %w", err)
 	}
 
-	s.revProxyRepo.AddRevConProxy(proxy)
+	s.revProxyRepo.Register(proxy)
 
 	return proxy, nil
+}
+
+func (s *Service) UnregisterRevProxy(proxy *RevProxy) {
+	s.revProxyRepo.Unregister(proxy)
 }
 
 func (s *Service) AddConnection(id uint64, conn net.Conn) error {
