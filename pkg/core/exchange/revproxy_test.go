@@ -156,7 +156,9 @@ func TestRevProxy_RequestConnection_CancelContext(t *testing.T) {
 	serviceName := "service1"
 
 	cancelCtx, cancel := context.WithCancel(ctx)
+
 	cancel()
+
 	err = revProxy.RequestConnection(cancelCtx, connID, serviceName)
 	assert.Equal(t, context.Canceled, err)
 }
