@@ -3,12 +3,16 @@ package exchange
 import (
 	"context"
 	"fmt"
+	"sync"
 )
 
 type RevProxy struct {
+	ctx       context.Context
+	cancel    context.CancelFunc
 	cmdStream chan RevProxyCommand
 	NameSpace string
 	Services  []string
+	mu        sync.RWMutex
 }
 
 type RevProxyCommand struct {
@@ -17,6 +21,10 @@ type RevProxyCommand struct {
 	ConnID    uint64
 }
 
+// NewRevProxy creates a new RevProxy with the specified name space and services.
+// It returns an error if the name space is empty or if the services list is empty.
+// It also returns an error if the services list contains duplicate service names.
+// The RevProxy is created with an empty command stream.
 func NewRevProxy(nameSpace string, services []string) (*RevProxy, error) {
 	if nameSpace == "" {
 		return nil, fmt.Errorf("name space is empty")
@@ -45,10 +53,47 @@ func NewRevProxy(nameSpace string, services []string) (*RevProxy, error) {
 	}, nil
 }
 
+// Start starts the RevProxy and returns an error if the RevProxy is already running.
+// The RevProxy is started with the specified context.
+func (r *RevProxy) Start(ctx context.Context) error {
+	r.mu.Lock()
+	if r.ctx != nil {
+		r.mu.Unlock()
+		return fmt.Errorf("revproxy is already started")
+	}
+
+	r.ctx, r.cancel = context.WithCancel(ctx)
+	r.mu.Unlock()
+
+	go func() {
+		<-ctx.Done()
+		close(r.cmdStream)
+	}()
+
+	return nil
+}
+
+// Stop stops the RevProxy.
+// It closes the command stream and sets the context to nil.
+func (r *RevProxy) Stop() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.cancel()
+
+	r.ctx = nil
+}
+
+// CommandStream returns a read-only channel of RevProxyCommand.
+// This channel is used to receive commands for the RevProxy.
+// Any commands sent through this channel will be processed by the RevProxy.
+// The returned channel is read-only, meaning it can only be used for receiving commands.
 func (r *RevProxy) CommandStream() <-chan RevProxyCommand {
 	return r.cmdStream
 }
 
+// RequestConnection sends a request to establish a connection with the specified ID and name.
+// It returns an error if the context is canceled or if the command cannot be sent to the command stream.
 func (r *RevProxy) RequestConnection(ctx context.Context, id uint64, name string) error {
 	cmd := RevProxyCommand{
 		NameSpace: r.NameSpace,
@@ -59,6 +104,8 @@ func (r *RevProxy) RequestConnection(ctx context.Context, id uint64, name string
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
+	case <-r.ctx.Done():
+		return fmt.Errorf("revproxy is stopped")
 	case r.cmdStream <- cmd:
 		return nil
 	}
