@@ -23,13 +23,13 @@ func TestBridge_CreateConnection(t *testing.T) {
 	ctx := context.Background()
 	expectedProto := "tcp"
 	expectedAddr := "example.com:1234"
-	expectedId := uint64(1)
+	expectedID := uint64(1)
 
 	tests := []struct {
-		name        string
 		srcErr      error
 		destErr     error
 		expectedErr error
+		name        string
 	}{
 		{
 			name:        "no errors",
@@ -63,7 +63,7 @@ func TestBridge_CreateConnection(t *testing.T) {
 
 			srcConn, destConn := net.Pipe()
 
-			apiClient.EXPECT().Connect(ctx, expectedId).Return(srcConn, tt.srcErr)
+			apiClient.EXPECT().Connect(ctx, expectedID).Return(srcConn, tt.srcErr)
 
 			if tt.srcErr == nil {
 				dialer.EXPECT().DialContext(ctx, expectedProto, expectedAddr).Return(destConn, tt.destErr)
