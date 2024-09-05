@@ -10,3 +10,9 @@ packages:
     interfaces:
       Conn:
         inpackage: true
+  github.com/ksysoev/oneway/pkg/prov/bridge:
+    interfaces:
+      Connector:
+        inpackage: true
+      ContextDialer:
+        inpackage: true
