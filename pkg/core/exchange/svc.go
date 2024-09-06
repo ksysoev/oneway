@@ -37,6 +37,9 @@ type ConnectionQueue interface {
 	AddConnection(id uint64, conn ConnResult) error
 }
 
+// New creates a new instance of the Service.
+// It takes a RevProxyRepo and a ConnectionQueue as parameters.
+// It returns a pointer to the newly created Service.
 func New(revProxyRepo RevProxyRepo, connQueue ConnectionQueue) *Service {
 	return &Service{
 		revProxyRepo: revProxyRepo,
@@ -44,6 +47,9 @@ func New(revProxyRepo RevProxyRepo, connQueue ConnectionQueue) *Service {
 	}
 }
 
+// NewConnection creates a new connection.
+// It takes a context and an address as parameters.
+// It returns a net.Conn and an error.
 func (s *Service) NewConnection(ctx context.Context, addr *network.Address) (net.Conn, error) {
 	ctx, span := tracer.Start(ctx, "Exchange.NewConnection")
 	defer span.End()
@@ -80,6 +86,9 @@ func (s *Service) NewConnection(ctx context.Context, addr *network.Address) (net
 	}
 }
 
+// RegisterRevProxy registers the reverse connection proxy.
+// It takes a context, namespace, and services as parameters.
+// It returns a pointer to a RevProxy and an error.
 func (s *Service) RegisterRevProxy(_ context.Context, nameSpace string, services []string) (*RevProxy, error) {
 	proxy, err := NewRevProxy(nameSpace, services)
 	if err != nil {
@@ -91,10 +100,14 @@ func (s *Service) RegisterRevProxy(_ context.Context, nameSpace string, services
 	return proxy, nil
 }
 
+// UnregisterRevProxy unregisters the reverse connection proxy.
+// It takes a pointer to a RevProxy as a parameter.
 func (s *Service) UnregisterRevProxy(proxy *RevProxy) {
 	s.revProxyRepo.Unregister(proxy)
 }
 
+// AddConnection adds a connection to the connection queue.
+// It returns an error if the connection queue cannot add the connection.
 func (s *Service) AddConnection(id uint64, conn net.Conn) error {
 	return s.connQueue.AddConnection(id, ConnResult{
 		Conn: conn,

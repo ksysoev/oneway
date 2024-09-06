@@ -10,6 +10,12 @@ packages:
     interfaces:
       Conn:
         inpackage: true
+  github.com/ksysoev/oneway/pkg/core/exchange:
+    interfaces:
+      RevProxyRepo:
+        inpackage: true
+      ConnectionQueue:
+        inpackage: true
   github.com/ksysoev/oneway/pkg/prov/bridge:
     interfaces:
       Connector:
