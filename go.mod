@@ -21,7 +21,7 @@ require (
 	golang.org/x/net v0.28.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
-	tailscale.com v1.72.1
+	tailscale.com v1.74.0
 )
 
 require (
