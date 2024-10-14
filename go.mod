@@ -1,6 +1,7 @@
 module github.com/ksysoev/oneway
 
 go 1.23.0
+toolchain go1.23.2
 
 require (
 	github.com/prometheus/client_golang v1.20.4
@@ -21,7 +22,7 @@ require (
 	golang.org/x/net v0.30.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.34.2
-	tailscale.com v1.74.1
+	tailscale.com v1.76.0
 )
 
 require (
