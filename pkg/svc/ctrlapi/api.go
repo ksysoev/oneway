@@ -55,7 +55,7 @@ func (a *API) Run(ctx context.Context) error {
 	return grpcServer.Serve(lis)
 }
 
-func (a *API) RegisterService(req *api.RegisterRequest, stream grpc.ServerStreamingServer[api.ConnectCommand]) error {
+func (a *API) RegisterService(req *api.RegisterRequest, stream api.ExchangeService_RegisterServiceServer) error {
 	rcp, err := a.exchange.RegisterRevProxy(stream.Context(), req.NameSpace, req.ServiceName)
 	if err != nil {
 		return err
