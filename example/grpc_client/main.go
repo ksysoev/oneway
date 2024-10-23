@@ -9,7 +9,6 @@ import (
 	"github.com/ksysoev/oneway/api/client"
 	"github.com/ksysoev/oneway/example/api"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -17,8 +16,8 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 
 	defer cancel()
-
-	conn, err := client.NewGRPCClient("localhost:1080", "echoserver.example", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// "localhost:1080", "echoserver.example"
+	conn, err := client.NewGRPCClient("localhost:1080", "echoserver.example", grpc.WithInsecure())
 
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))

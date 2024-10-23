@@ -42,5 +42,5 @@ func NewGRPCClient(proxyAddr, serviceAddr string, opts ...grpc.DialOption) (*grp
 		},
 	))
 
-	return grpc.NewClient("passthrough://", opts...)
+	return grpc.Dial("passthrough://", opts...)
 }

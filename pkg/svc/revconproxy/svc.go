@@ -7,7 +7,6 @@ import (
 
 	"github.com/ksysoev/oneway/api"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type rcpService interface {
@@ -29,7 +28,7 @@ func New(rcpServ rcpService, ctrlAPI string) *Proxy {
 }
 
 func (s *Proxy) Run(ctx context.Context) error {
-	conn, err := grpc.NewClient(s.ctrlAPI, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(s.ctrlAPI, grpc.WithInsecure())
 	if err != nil {
 		return fmt.Errorf("failed to dial control api: %w", err)
 	}
