@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/ksysoev/oneway/api/client"
 	"github.com/ksysoev/oneway/example/api"
 	"google.golang.org/grpc"
 )
@@ -16,7 +17,7 @@ func main() {
 
 	defer cancel()
 	// "localhost:1080", "echoserver.example"
-	conn, err := grpc.DialContext(ctx, "localhost:1080", grpc.WithInsecure())
+	conn, err := client.NewGRPCClient("localhost:1080", "echoserver.example", grpc.WithInsecure())
 
 	if err != nil {
 		slog.Error("failed to dial exchange", slog.Any("error", err))
